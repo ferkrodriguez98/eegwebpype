@@ -59,7 +59,11 @@
       "Bash(cp*)",
       "Bash(mv*)",
       "Bash(curl*)",
-      "Bash(npx playwright*)"
+      "Bash(npx playwright*)",
+      "Bash(cd *)",
+      "Bash(export *)",
+      "Bash(source *)",
+      "Bash(echo *)"
     ]
   }
 }
