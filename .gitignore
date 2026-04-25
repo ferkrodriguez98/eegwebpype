@@ -1,0 +1,68 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.uv/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.egg-info/
+
+# EEG data — never commit raw or processed data
+*.bdf
+*.fif
+*.set
+*.fdt
+*.cnt
+*.edf
+*.vhdr
+*.vmrk
+*.eeg
+
+# Pype workspace data
+apps/api/data/
+apps/web/data/
+data/sessions/
+data/snapshots/
+data/exports/
+
+# Env files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.playwright/
+playwright-report/
+test-results/
+
+# Misc
+.turbo/
+.cache/
+tmp/
