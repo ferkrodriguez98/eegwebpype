@@ -1,0 +1,29 @@
+{
+  "name": "eegwebpype",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.12.3",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "format": "biome format --write .",
+    "api:dev": "cd apps/api && uv run uvicorn pype.main:app --reload --port 8000",
+    "api:lint": "cd apps/api && uv run ruff check .",
+    "api:format": "cd apps/api && uv run ruff format --check .",
+    "api:typecheck": "cd apps/api && uv run pyright",
+    "api:test": "cd apps/api && uv run pytest -q"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "concurrently": "9.1.2",
+    "turbo": "2.3.3",
+    "typescript": "5.7.3"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=10"
+  }
+}

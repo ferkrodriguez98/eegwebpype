@@ -66,3 +66,4 @@ test-results/
 .turbo/
 .cache/
 tmp/
+*.tsbuildinfo
