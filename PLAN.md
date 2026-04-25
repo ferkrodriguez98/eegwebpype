@@ -379,10 +379,49 @@ Cada fase termina con demo funcional y un commit que cierra esa fase.
 - **Snapshots .fif binarios, no JSON**: JSON con un raw filtrado es 500MB+. .fif es el formato de MNE y comprime bien. Decisión tomada.
 - **TypeScript estricto, no `any`**: regla del repo. Schema generation desde Pydantic.
 
+## CI por fase
+
+### Base (F0) — siempre corre
+| Job | Qué hace |
+|---|---|
+| `lint-web` | `biome check` sobre `apps/web` y `packages/shared` |
+| `lint-api` | `ruff check` + `ruff format --check` sobre `apps/api` |
+| `typecheck-web` | `tsc --noEmit` |
+| `typecheck-api` | `pyright` strict |
+| `test-web` | `vitest run` |
+| `test-api` | `pytest -q` |
+| `build-web` | `next build` |
+
+Todos en paralelo, cache de pnpm y uv. Status checks **required** para mergear a `main`.
+
+### Lo que se suma por fase
+| Fase | Jobs nuevos |
+|---|---|
+| F1 | Tests de Arrow round-trip + endpoints de signal/psd. Bench job (no bloqueante) de tiempo de carga. |
+| F2 | Tests pesados de event log: replay determinístico, undo, idempotencia, snapshots. Property-based con `hypothesis`. |
+| **F3** | **Playwright entra**: job `e2e` con escenario de marcado de canal + persistencia + undo. |
+| F4 | Test backend de filtros (atenuación correcta). E2E de preview de filtro. |
+| F5 | Tests de ICA determinístico + ICLabel sobre fixtures. E2E con timeout permisivo. |
+| F6 | Tests de interpolación + average reference. |
+| F7 | Tests de epoching + rejection automático. |
+| F8 | **Test de regresión vs notebook**: workflow_dispatch manual. Procesa AB11_D1 con eegwebpype y compara `.fif` resultante con el del notebook (correlación >0.999). |
+| F9 | E2E de compare view + sincronización D1/D2. |
+| F10 | E2E de batch processing. |
+| F11 | Accesibilidad (`axe-playwright`), atajos de teclado, visual regression. |
+
+### Performance gates (a partir de F1)
+Job `perf` no bloqueante mide tiempo de primer paint, FPS de scroll, bytes transferidos. Reporta como comentario en el PR. Si rompe budget de PLAN.md, label `perf-regression` para review explícita.
+
+## Reglas de commits y PRs
+
+- **Commits cortos, una sola línea.** Conventional commits: `feat: ...`, `fix: ...`, `chore: ...`, `docs: ...`, `test: ...`, `perf: ...`, `refactor: ...`, `ci: ...`. Nunca multi-párrafo, nunca con co-author trailer.
+- **Una PR por fase.** Título `[FX] <feature>`. Squash merge para que `main` quede limpio.
+- **Branch naming**: `feat/fX-<slug>`. Subramas opcionales para fases grandes: `feat/fX-<aspecto>`.
+- **Tags**: cada fase mergeada genera tag `v0.X.0`. F11 cierra como `v1.0.0`.
+
 ## Roadmap inmediato
 
-1. Commitear este plan + scaffolding inicial.
-2. F0: scaffolding completo (Next + FastAPI + CORS + dummy endpoints).
-3. F1: carga de .bdf y scroll temporal funcional.
-
-Cada fase cierra con un commit `feat(fX): <feature>` y una demo grabable.
+1. Push commit inicial + PLAN.md.
+2. Crear labels, issues por fase, branch protection en `main`.
+3. F0: scaffolding completo (Next + FastAPI + CORS + dummy endpoints + CI base).
+4. F1: carga de `.bdf` y scroll temporal funcional.
