@@ -63,7 +63,7 @@ def test_session_signal_returns_arrow(synthetic_bdf: Path) -> None:
     assert r.headers["content-type"].startswith("application/vnd.apache.arrow")
     decoded = decode_arrow(r.content)
     assert "times" in decoded
-    assert "E1" in decoded
+    assert "Fp1" in decoded
     assert decoded["times"].shape[0] > 0
     # times array monotonically increasing
     times = decoded["times"]
@@ -83,7 +83,7 @@ def test_session_psd_returns_arrow(synthetic_bdf: Path) -> None:
     assert r.status_code == 200
     decoded = decode_arrow(r.content)
     assert "freqs" in decoded
-    assert "E1" in decoded
+    assert "Fp1" in decoded
     assert decoded["freqs"].shape[0] > 5
 
 

@@ -23,10 +23,12 @@ from pype.schemas.events import (
     Event,
     EventInput,
     FilterEvent,
+    InterpolateBadsEvent,
     LoadEvent,
     MarkBadEvent,
     ResampleEvent,
     SetMontageEvent,
+    SetReferenceEvent,
     UnmarkBadEvent,
 )
 from pype.schemas.session import SessionState
@@ -109,9 +111,22 @@ def apply_event(raw: BaseRaw, ev: Event) -> BaseRaw:
         new_bads = [c for c in bads if c not in ev.params.channels]
         raw.info["bads"] = new_bads  # type: ignore[index]
         return raw
+    if isinstance(ev, InterpolateBadsEvent):
+        bads: list[str] = list(raw.info["bads"])  # type: ignore[index]
+        if bads:
+            raw.interpolate_bads(reset_bads=True, verbose="ERROR")
+        return raw
+    if isinstance(ev, SetReferenceEvent):
+        ref_type = ev.params.type
+        if ref_type in ("average", "REST", "rest"):
+            raw.set_eeg_reference(
+                ref_channels="average" if ref_type == "average" else ref_type.lower(),
+                projection=False,
+                verbose="ERROR",
+            )
+        return raw
 
-    # Heavy ops (ICA, interpolate, reference, epochs, export) come in F5-F8.
-    # For now they are no-ops at the engine level so we can still write tests.
+    # Heavy ops (ICA fit, epochs, export) come in F5+/F7+.
     return raw
 
 
