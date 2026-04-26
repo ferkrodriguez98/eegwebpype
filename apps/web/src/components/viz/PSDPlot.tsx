@@ -12,7 +12,8 @@ type Props = {
 
 type HoverState = {
   freq: number;
-  series: { name: string; value: number }[];
+  channel: string;
+  value: number;
 } | null;
 
 function toLogDb(arr: Float32Array): number[] {
@@ -32,6 +33,8 @@ export function PSDPlot({ freqs, channels, height = 280 }: Props) {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    if (channels.length === 0) return;
+
     const x: number[] = Array.from(freqs);
     const ySeries = channels.map((c) => toLogDb(c.data));
     const data: AlignedData = [x, ...ySeries] as AlignedData;
@@ -43,7 +46,9 @@ export function PSDPlot({ freqs, channels, height = 280 }: Props) {
       legend: { show: false },
       cursor: {
         focus: { prox: 30 },
-        points: { size: 6 },
+        // Don't render the default per-series points on hover; we draw our
+        // own single dot for the focused channel only.
+        points: { show: false },
       },
       scales: { x: { time: false }, y: { auto: true } },
       axes: [{ stroke: "#a1a1aa" }, { stroke: "#a1a1aa", grid: { stroke: "#27272a" } }],
@@ -67,21 +72,39 @@ export function PSDPlot({ freqs, channels, height = 280 }: Props) {
               setTooltipPos(null);
               return;
             }
-            const freq = x[idx] ?? 0;
-            const series: { name: string; value: number }[] = [];
+            const yVal = u.posToVal(top, "y");
+
+            // Pick the single channel whose value at this frequency is closest
+            // to the cursor's y position. That's the one the user is pointing at.
+            let bestI = -1;
+            let bestD = Number.POSITIVE_INFINITY;
             for (let i = 0; i < channels.length; i++) {
-              const ch = channels[i];
               const arr = ySeries[i];
-              if (!ch || !arr) continue;
+              if (!arr) continue;
               const v = arr[idx];
               if (v === undefined || !Number.isFinite(v)) continue;
-              series.push({ name: ch.name, value: v });
+              const d = Math.abs(v - yVal);
+              if (d < bestD) {
+                bestD = d;
+                bestI = i;
+              }
             }
-            // Sort by closeness to the cursor's y-position (in data space).
-            const yVal = u.posToVal(top, "y");
-            series.sort((a, b) => Math.abs(a.value - yVal) - Math.abs(b.value - yVal));
-            setHover({ freq, series: series.slice(0, 6) });
+            if (bestI < 0) {
+              setHover(null);
+              return;
+            }
+            const ch = channels[bestI];
+            const arr = ySeries[bestI];
+            const v = arr?.[idx];
+            if (!ch || v === undefined) return;
+            setHover({ freq: x[idx] ?? 0, channel: ch.name, value: v });
             setTooltipPos({ x: left, y: top });
+
+            // Highlight only the focused series visually.
+            for (let i = 0; i < channels.length; i++) {
+              const isFocused = i === bestI;
+              u.setSeries(i + 1, { focus: isFocused }, false);
+            }
           },
         ],
       },
@@ -101,19 +124,12 @@ export function PSDPlot({ freqs, channels, height = 280 }: Props) {
       {hover && tooltipPos && (
         <div
           className="pointer-events-none absolute z-10 rounded border border-zinc-700 bg-zinc-950/95 p-2 font-mono text-[10px] text-zinc-100 shadow-lg"
-          style={{
-            left: tooltipPos.x + 12,
-            top: tooltipPos.y + 12,
-            maxWidth: 200,
-          }}
+          style={{ left: tooltipPos.x + 12, top: Math.max(0, tooltipPos.y - 28) }}
         >
-          <div className="mb-1 text-zinc-400">{hover.freq.toFixed(1)} Hz</div>
-          {hover.series.map((s) => (
-            <div key={s.name} className="flex justify-between gap-3">
-              <span className="text-zinc-300">{s.name}</span>
-              <span className="text-zinc-100">{s.value.toFixed(1)} dB</span>
-            </div>
-          ))}
+          <div className="mb-0.5 text-zinc-400">
+            {hover.channel} · {hover.freq.toFixed(1)} Hz
+          </div>
+          <div className="text-zinc-100">{hover.value.toFixed(1)} dB</div>
         </div>
       )}
     </div>

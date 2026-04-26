@@ -105,8 +105,18 @@ export const api = {
     if (params.fmax !== undefined) q.set("fmax", String(params.fmax));
     return getArrow(`/api/sessions/${id}/psd-with-filter?${q}`);
   },
-  detectBadChannels: (id: string) =>
-    post<DetectBadResult>(`/api/sessions/${id}/detect-bad-channels`),
+  detectBadChannels: (
+    id: string,
+    params?: { mad_k?: number; pot_z_extreme?: number; neighbor_corr_thr?: number },
+  ) => {
+    const q = new URLSearchParams();
+    if (params?.mad_k !== undefined) q.set("mad_k", String(params.mad_k));
+    if (params?.pot_z_extreme !== undefined) q.set("pot_z_extreme", String(params.pot_z_extreme));
+    if (params?.neighbor_corr_thr !== undefined)
+      q.set("neighbor_corr_thr", String(params.neighbor_corr_thr));
+    const qs = q.toString();
+    return post<DetectBadResult>(`/api/sessions/${id}/detect-bad-channels${qs ? `?${qs}` : ""}`);
+  },
   topomap: (id: string, metric: TopomapMetric) =>
     get<TopomapResponse>(`/api/sessions/${id}/topomap?metric=${metric}`),
   epochs: (id: string, length: number) =>
