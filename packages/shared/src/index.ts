@@ -1,5 +1,57 @@
+// Shared types between web and api.
+// In F2 these will be auto-generated from Pydantic, for F1 we hand-write them.
+
 export type Health = {
   ok: boolean;
   service: string;
   version: string;
+};
+
+export type SessionId = `${string}_${"D1" | "D2"}`;
+
+export type SessionStatus = "raw" | "in_progress" | "done" | "exported" | "needs_review";
+
+export type SessionRef = {
+  id: SessionId;
+  subject: string;
+  session: "D1" | "D2";
+  status: SessionStatus;
+  last_opened: string | null;
+  source_file: string;
+};
+
+export type Workspace = {
+  version: 1;
+  data_root: string;
+  sessions: SessionRef[];
+};
+
+export type SessionMetadata = {
+  sfreq_original: number;
+  sfreq_current: number;
+  n_channels_original: number;
+  n_channels_current: number;
+  duration_seconds: number;
+  channel_names: string[];
+};
+
+export type LoadEvent = {
+  id: string;
+  ts: string;
+  op: "load";
+  params: { source_file: string };
+};
+
+export type Event = LoadEvent;
+
+export type SessionState = {
+  id: SessionId;
+  subject: string;
+  session: "D1" | "D2";
+  source_file: string;
+  created_at: string;
+  updated_at: string;
+  events: Event[];
+  snapshots: Record<string, string>[];
+  metadata: SessionMetadata;
 };

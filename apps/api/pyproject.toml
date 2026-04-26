@@ -8,6 +8,11 @@ dependencies = [
     "fastapi>=0.115.6",
     "uvicorn[standard]>=0.34.0",
     "pydantic>=2.10.5",
+    "mne>=1.9.0",
+    "numpy>=2.2.0",
+    "scipy>=1.15.0",
+    "pyarrow>=20.0.0",
+    "python-multipart>=0.0.20",
 ]
 
 [project.optional-dependencies]
