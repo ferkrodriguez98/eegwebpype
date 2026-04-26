@@ -1,6 +1,9 @@
 # Local Claude Code settings — per-developer, not committed
 .claude/
 
+# Internal planning notes — not part of the public repo
+PLAN.md
+
 # Dependencies
 node_modules/
 .pnpm-store/

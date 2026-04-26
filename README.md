@@ -20,8 +20,7 @@ eegwebpype/
 │   └── api/              # FastAPI (uv)
 ├── packages/
 │   └── shared/           # tipos TS compartidos
-├── data/                 # workspace local (gitignored)
-└── PLAN.md               # diseño y roadmap
+└── data/                 # workspace local (gitignored)
 ```
 
 ## Setup
@@ -68,4 +67,4 @@ pnpm api:test
 
 ## Roadmap
 
-Ver [PLAN.md](./PLAN.md). Issues por fase en [GitHub Issues](https://github.com/ferkrodriguez98/eegwebpype/issues).
+Issues por fase en [GitHub Issues](https://github.com/ferkrodriguez98/eegwebpype/issues).
