@@ -39,12 +39,14 @@ def synthetic_bdf(isolated_data_dir: Path) -> Path:
     import mne  # pyright: ignore[reportMissingTypeStubs]
 
     sfreq = 256.0
-    n_channels = 8
+    # Use names from the standard_1020 montage so tests can apply set_montage
+    # and run interpolation/topomap operations that need real positions.
+    ch_names = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4"]
+    n_channels = len(ch_names)
     n_samples = int(sfreq * 4)  # 4 s of data
     rng = np.random.default_rng(42)
     data = rng.standard_normal((n_channels, n_samples)).astype(np.float64) * 1e-6
 
-    ch_names = [f"E{i + 1}" for i in range(n_channels)]
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")  # pyright: ignore[reportUnknownMemberType]
     raw = mne.io.RawArray(data, info, verbose="ERROR")  # pyright: ignore[reportUnknownMemberType]
 

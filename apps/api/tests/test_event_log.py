@@ -53,13 +53,13 @@ def test_append_event(synthetic_bdf: Path) -> None:
 
     r = client.post(
         "/api/sessions/TEST01_D1/events",
-        json={"op": "mark_bad", "params": {"channels": ["E1"], "reason": "manual"}},
+        json={"op": "mark_bad", "params": {"channels": ["Fp1"], "reason": "manual"}},
     )
     assert r.status_code == 200, r.text
     body = r.json()
     assert len(body["events"]) == 2  # load + mark_bad
     assert body["events"][1]["op"] == "mark_bad"
-    assert body["events"][1]["params"]["channels"] == ["E1"]
+    assert body["events"][1]["params"]["channels"] == ["Fp1"]
 
 
 def test_undo_event(synthetic_bdf: Path) -> None:
@@ -67,7 +67,7 @@ def test_undo_event(synthetic_bdf: Path) -> None:
     client.post("/api/workspace/scan")
     client.post(
         "/api/sessions/TEST01_D1/events",
-        json={"op": "mark_bad", "params": {"channels": ["E1"]}},
+        json={"op": "mark_bad", "params": {"channels": ["Fp1"]}},
     )
     r = client.delete("/api/sessions/TEST01_D1/events/last")
     assert r.status_code == 200
@@ -91,13 +91,13 @@ def test_replay_marks_bad_channel(synthetic_bdf: Path) -> None:
     client.post("/api/workspace/scan")
     client.post(
         "/api/sessions/TEST01_D1/events",
-        json={"op": "mark_bad", "params": {"channels": ["E2"]}},
+        json={"op": "mark_bad", "params": {"channels": ["Fp2"]}},
     )
 
     from pype.services.sessions import get_raw_for
 
     raw = get_raw_for("TEST01_D1")
-    assert "E2" in list(raw.info["bads"])
+    assert "Fp2" in list(raw.info["bads"])
 
 
 def test_replay_unmark_round_trip(synthetic_bdf: Path) -> None:
@@ -105,17 +105,17 @@ def test_replay_unmark_round_trip(synthetic_bdf: Path) -> None:
     client.post("/api/workspace/scan")
     client.post(
         "/api/sessions/TEST01_D1/events",
-        json={"op": "mark_bad", "params": {"channels": ["E3"]}},
+        json={"op": "mark_bad", "params": {"channels": ["F3"]}},
     )
     client.post(
         "/api/sessions/TEST01_D1/events",
-        json={"op": "unmark_bad", "params": {"channels": ["E3"]}},
+        json={"op": "unmark_bad", "params": {"channels": ["F3"]}},
     )
 
     from pype.services.sessions import get_raw_for
 
     raw = get_raw_for("TEST01_D1")
-    assert "E3" not in list(raw.info["bads"])
+    assert "F3" not in list(raw.info["bads"])
 
 
 def test_filter_event_changes_signal(synthetic_bdf: Path) -> None:
@@ -150,7 +150,7 @@ def test_replay_deterministic(synthetic_bdf: Path) -> None:
     client.post("/api/workspace/scan")
     client.post(
         "/api/sessions/TEST01_D1/events",
-        json={"op": "mark_bad", "params": {"channels": ["E1"]}},
+        json={"op": "mark_bad", "params": {"channels": ["Fp1"]}},
     )
 
     from pype.services.sessions import get_raw_for
@@ -176,7 +176,7 @@ def test_state_persists_between_requests(synthetic_bdf: Path) -> None:
     client.post("/api/workspace/scan")
     client.post(
         "/api/sessions/TEST01_D1/events",
-        json={"op": "mark_bad", "params": {"channels": ["E1"]}},
+        json={"op": "mark_bad", "params": {"channels": ["Fp1"]}},
     )
 
     r = client.get("/api/sessions/TEST01_D1")

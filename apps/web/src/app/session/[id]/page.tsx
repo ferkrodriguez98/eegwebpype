@@ -1,6 +1,7 @@
 "use client";
 
 import { BadChannelsPanel } from "@/components/BadChannelsPanel";
+import { CleanupPanel } from "@/components/CleanupPanel";
 import { EventTimeline } from "@/components/EventTimeline";
 import { FilterPanel } from "@/components/FilterPanel";
 import { ICAPanel } from "@/components/ICAPanel";
@@ -14,7 +15,7 @@ import { use, useState } from "react";
 
 type ParamsP = Promise<{ id: string }>;
 
-const TABS = ["overview", "bad-channels", "filter", "ica"] as const;
+const TABS = ["overview", "bad-channels", "filter", "ica", "cleanup"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function SessionPage({ params }: { params: ParamsP }) {
@@ -132,6 +133,8 @@ export default function SessionPage({ params }: { params: ParamsP }) {
       {tab === "filter" && <FilterPanel sessionId={id} />}
 
       {tab === "ica" && <ICAPanel sessionId={id} />}
+
+      {tab === "cleanup" && <CleanupPanel sessionId={id} state={session.data} />}
     </main>
   );
 }

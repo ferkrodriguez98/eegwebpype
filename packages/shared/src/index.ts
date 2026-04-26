@@ -56,6 +56,15 @@ export type UnmarkBadEvent = EventBase & {
   params: { channels: string[] };
 };
 
+export type InterpolateBadsEvent = EventBase & {
+  op: "interpolate_bads";
+  params: Record<string, never>;
+};
+export type SetReferenceEvent = EventBase & {
+  op: "set_reference";
+  params: { type: "average" | "REST" | "rest" };
+};
+
 export type Event =
   | LoadEvent
   | DropChannelsEvent
@@ -63,7 +72,9 @@ export type Event =
   | ResampleEvent
   | FilterEvent
   | MarkBadEvent
-  | UnmarkBadEvent;
+  | UnmarkBadEvent
+  | InterpolateBadsEvent
+  | SetReferenceEvent;
 
 export type EventInput = { op: string; params: Record<string, unknown> };
 

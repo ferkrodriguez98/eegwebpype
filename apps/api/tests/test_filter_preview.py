@@ -59,14 +59,14 @@ def test_psd_preview_with_low_pass_reduces_hf(synthetic_bdf: Path) -> None:
     filt = decode_arrow(r1.content)
 
     freqs_base = base["freqs"]
-    e1_base = base["E1"]
-    e1_filt = filt["E1"]
+    fp1_base = base["Fp1"]
+    fp1_filt = filt["Fp1"]
 
     # In the 50-90 Hz band, filtered PSD should be much lower.
     hf_mask = (freqs_base >= 50) & (freqs_base <= 90)
     if np.any(hf_mask):
-        avg_base = np.mean(e1_base[hf_mask])
-        avg_filt = np.mean(e1_filt[hf_mask])
+        avg_base = np.mean(fp1_base[hf_mask])
+        avg_filt = np.mean(fp1_filt[hf_mask])
         assert avg_filt < avg_base
 
 
