@@ -64,6 +64,18 @@ export type SetReferenceEvent = EventBase & {
   op: "set_reference";
   params: { type: "average" | "REST" | "rest" };
 };
+export type EpochEvent = EventBase & {
+  op: "epoch";
+  params: { length_seconds: number; overlap: number; detrend: number | null };
+};
+export type RejectEpochsEvent = EventBase & {
+  op: "reject_epochs";
+  params: { indices: number[]; reason: "auto_ptp" | "manual" };
+};
+export type ExportEvent = EventBase & {
+  op: "export";
+  params: { kind: "epochs" | "raw"; path: string };
+};
 
 export type Event =
   | LoadEvent
@@ -74,7 +86,10 @@ export type Event =
   | MarkBadEvent
   | UnmarkBadEvent
   | InterpolateBadsEvent
-  | SetReferenceEvent;
+  | SetReferenceEvent
+  | EpochEvent
+  | RejectEpochsEvent
+  | ExportEvent;
 
 export type EventInput = { op: string; params: Record<string, unknown> };
 
@@ -123,6 +138,13 @@ export type EpochsMatrix = {
   ptp_max_per_epoch: number[];
   rejected_indices: number[];
   threshold_uv: number;
+};
+
+export type ExportResult = {
+  fif_path: string;
+  log_path: string;
+  n_epochs: number;
+  n_channels: number;
 };
 
 export type SessionState = {

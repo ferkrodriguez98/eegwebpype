@@ -2,6 +2,7 @@ import type {
   DetectBadResult,
   EpochsMatrix,
   EventInput,
+  ExportResult,
   ICAFitResult,
   SessionState,
   TopomapMetric,
@@ -106,6 +107,7 @@ export const api = {
     get<TopomapResponse>(`/api/sessions/${id}/topomap?metric=${metric}`),
   epochs: (id: string, length: number) =>
     get<EpochsMatrix>(`/api/sessions/${id}/epochs?length=${length}`),
+  exportSession: (id: string) => post<ExportResult>(`/api/sessions/${id}/export`),
   icaComponents: (id: string) => get<ICAFitResult>(`/api/sessions/${id}/ica/components`),
   fitIcaWS: (
     id: string,
