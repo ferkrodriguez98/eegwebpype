@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 from typing import Any
 
@@ -116,7 +117,5 @@ async def ws_fit_ica(websocket: WebSocket, sid: str) -> None:
     except WebSocketDisconnect:
         return
     finally:
-        try:
+        with contextlib.suppress(RuntimeError):
             await websocket.close()
-        except RuntimeError:
-            pass
