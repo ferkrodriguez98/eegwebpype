@@ -92,15 +92,17 @@ def get_psd_with_filter(
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
-    raw_copy = raw.copy()  # type: ignore[attr-defined]
+    from typing import Any
+
+    raw_copy: Any = raw.copy()  # type: ignore[attr-defined]
     if l_freq is not None or h_freq is not None:
-        extra: dict[str, float] = {}
+        extra: dict[str, Any] = {}
         if l_trans is not None:
             extra["l_trans_bandwidth"] = l_trans
         if h_trans is not None:
             extra["h_trans_bandwidth"] = h_trans
         try:
-            raw_copy.filter(  # type: ignore[arg-type]
+            raw_copy.filter(
                 l_freq=l_freq,
                 h_freq=h_freq,
                 picks="eeg",
