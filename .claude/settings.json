@@ -110,7 +110,10 @@
       "Edit(/Users/fermin/Desktop/REST/eegwebpype/**)",
       "Write(/Users/fermin/Desktop/REST/eegwebpype/**)",
       "Read(/Users/fermin/Desktop/REST/eegwebpype/**)",
-      "Read(/Users/fermin/Desktop/REST/Rest/Rest/**)"
+      "Read(/Users/fermin/Desktop/REST/Rest/Rest/**)",
+      "Bash(cd /Users/fermin/Desktop/REST/eegwebpype*)",
+      "Bash(git checkout -b *)",
+      "Bash(git push -u *)"
     ]
   }
 }
