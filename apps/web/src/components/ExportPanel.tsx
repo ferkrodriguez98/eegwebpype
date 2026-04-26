@@ -31,15 +31,16 @@ export function ExportPanel({
           <h3 className="text-sm uppercase tracking-wider text-zinc-300">export</h3>
         </div>
         <p className="mb-3 text-xs text-zinc-500">
-          materializa <code className="rounded bg-zinc-900 px-1 font-mono">clean-epo.fif</code> +{" "}
-          <code className="rounded bg-zinc-900 px-1 font-mono">log.json</code> con todo el
-          provenance del estado actual. requiere haber comiteado un evento <code>epoch</code>.
+          writes <code className="rounded bg-zinc-900 px-1 font-mono">clean-epo.fif</code> and{" "}
+          <code className="rounded bg-zinc-900 px-1 font-mono">log.json</code> with the full
+          provenance of the current state. requires an <code>epoch</code> event to have been
+          committed.
         </p>
 
         {!ready && (
           <p className="mb-2 text-xs text-amber-400">
-            primero creá épocas en la pestaña <span className="font-mono">epochs</span> y tocá
-            commit.
+            create epochs in the <span className="font-mono">epochs</span> tab and click commit
+            first.
           </p>
         )}
 
@@ -50,7 +51,7 @@ export function ExportPanel({
           className="flex items-center gap-1.5 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs hover:bg-zinc-800 disabled:opacity-40"
         >
           <Download size={14} />
-          {exp.isPending ? "exportando…" : "export clean-epo.fif"}
+          {exp.isPending ? "exporting…" : "export clean-epo.fif"}
         </button>
 
         {exp.error && <p className="mt-2 text-xs text-red-400">{String(exp.error)}</p>}
@@ -60,7 +61,7 @@ export function ExportPanel({
             <div className="flex items-center gap-2 text-emerald-300">
               <FileCheck size={14} />
               <span>
-                listo: {exp.data.n_epochs} épocas × {exp.data.n_channels} canales
+                ready: {exp.data.n_epochs} epochs × {exp.data.n_channels} channels
               </span>
             </div>
             <div className="flex items-start gap-2 text-zinc-500">

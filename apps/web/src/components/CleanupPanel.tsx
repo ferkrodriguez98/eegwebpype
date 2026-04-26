@@ -44,20 +44,21 @@ export function CleanupPanel({
       <section className="rounded border border-zinc-800 bg-zinc-950 p-4">
         <div className="mb-3 flex items-center gap-2">
           <Wand2 size={16} className="text-zinc-400" />
-          <h3 className="text-sm uppercase tracking-wider text-zinc-300">interpolación esférica</h3>
+          <h3 className="text-sm uppercase tracking-wider text-zinc-300">
+            spherical interpolation
+          </h3>
         </div>
         <p className="mb-3 text-xs text-zinc-500">
-          interpola los canales marcados como malos a partir de sus vecinos. requiere montage
-          configurado.
+          interpolate channels marked as bad from their neighbors. requires a montage.
         </p>
         <div className="mb-3 text-xs text-zinc-400">
           {pending.length > 0 ? (
             <>
-              {pending.length} canales pendientes:{" "}
+              {pending.length} pending channels:{" "}
               <span className="font-mono text-red-300">{pending.join(", ")}</span>
             </>
           ) : (
-            <span className="text-zinc-600">no hay canales malos pendientes</span>
+            <span className="text-zinc-600">no bad channels pending</span>
           )}
         </div>
         <button
@@ -67,21 +68,21 @@ export function CleanupPanel({
           className="flex items-center gap-1.5 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs hover:bg-zinc-800 disabled:opacity-40"
         >
           <Wand2 size={14} />
-          interpolar {pending.length > 0 ? `(${pending.length})` : ""}
+          interpolate {pending.length > 0 ? `(${pending.length})` : ""}
         </button>
       </section>
 
       <section className="rounded border border-zinc-800 bg-zinc-950 p-4">
         <div className="mb-3 flex items-center gap-2">
           <Anchor size={16} className="text-zinc-400" />
-          <h3 className="text-sm uppercase tracking-wider text-zinc-300">referencia promedio</h3>
+          <h3 className="text-sm uppercase tracking-wider text-zinc-300">average reference</h3>
         </div>
         <p className="mb-3 text-xs text-zinc-500">
-          re-referencia común (CAR): suma cero a través de canales por timepoint. estándar EEG-Pype.
+          common average reference (CAR): the sum across channels at each timepoint becomes zero.
         </p>
         {pending.length > 0 && !refDone && (
           <p className="mb-2 text-xs text-amber-400">
-            recomendado: interpolar primero los canales malos para no contaminar la referencia.
+            recommended: interpolate bad channels first to avoid contaminating the reference.
           </p>
         )}
         <button
@@ -91,7 +92,7 @@ export function CleanupPanel({
           className="flex items-center gap-1.5 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs hover:bg-zinc-800 disabled:opacity-40"
         >
           <Anchor size={14} />
-          {refDone ? "ya aplicada" : "aplicar referencia promedio"}
+          {refDone ? "already applied" : "apply average reference"}
         </button>
       </section>
     </div>

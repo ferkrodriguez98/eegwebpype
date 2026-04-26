@@ -8,9 +8,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 const REASON_LABEL: Record<DetectorReason, string> = {
-  auto_power: "potencia",
-  auto_shape: "forma",
-  auto_neighbors: "vecinos",
+  auto_power: "power",
+  auto_shape: "shape",
+  auto_neighbors: "nbrs",
 };
 
 const REASON_COLOR: Record<DetectorReason, string> = {
@@ -109,12 +109,12 @@ export function BadChannelsPanel({
           >
             apply detected ({detect.data?.detections.length ?? 0})
           </button>
-          <span className="text-xs text-zinc-500">{bads.size} marcados</span>
+          <span className="text-xs text-zinc-500">{bads.size} marked</span>
         </div>
 
         <div className="rounded border border-zinc-800 bg-zinc-950 p-3">
           <div className="mb-2 text-xs uppercase tracking-wider text-zinc-500">
-            detectados (click para seleccionar / mark)
+            detected (click to select, double-click to toggle)
           </div>
           {detect.data ? (
             <ul className="flex flex-wrap gap-1">
@@ -145,19 +145,19 @@ export function BadChannelsPanel({
               ))}
               {detect.data.detections.length === 0 && (
                 <li className="text-xs text-zinc-500">
-                  sin canales sospechosos con los umbrales por defecto
+                  no suspicious channels at the default thresholds
                 </li>
               )}
             </ul>
           ) : (
-            <p className="text-xs text-zinc-600">tocá "auto-detect" para correr las 3 métricas.</p>
+            <p className="text-xs text-zinc-600">click "auto-detect" to run the 3 metrics.</p>
           )}
         </div>
 
         <div className="rounded border border-zinc-800 bg-zinc-950 p-3">
-          <div className="mb-2 text-xs uppercase tracking-wider text-zinc-500">marcados</div>
+          <div className="mb-2 text-xs uppercase tracking-wider text-zinc-500">marked</div>
           {bads.size === 0 ? (
-            <p className="text-xs text-zinc-600">ninguno marcado</p>
+            <p className="text-xs text-zinc-600">none marked</p>
           ) : (
             <ul className="flex flex-wrap gap-1">
               {Array.from(bads).map((ch) => (
@@ -166,7 +166,7 @@ export function BadChannelsPanel({
                     type="button"
                     onClick={() => onToggleBad(ch)}
                     className="rounded bg-red-900 px-2 py-0.5 font-mono text-xs text-red-100 hover:bg-red-800"
-                    title={`click para desmarcar · ${detectionByChannel.get(ch)?.reasons.join(",") ?? "manual"}`}
+                    title={`click to unmark · ${detectionByChannel.get(ch)?.reasons.join(",") ?? "manual"}`}
                   >
                     {ch}
                   </button>
@@ -179,7 +179,7 @@ export function BadChannelsPanel({
 
       <div className="flex flex-col items-center gap-2">
         <h3 className="text-xs uppercase tracking-wider text-zinc-500">
-          topomap · desviación de forma
+          topomap · shape deviation
         </h3>
         <Topomap
           points={topo.data?.points ?? []}

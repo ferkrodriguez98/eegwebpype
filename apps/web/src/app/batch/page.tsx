@@ -68,8 +68,8 @@ export default function BatchPage() {
           <h1 className="font-mono text-xl">batch processing</h1>
         </div>
         <p className="text-xs text-zinc-500">
-          aplica una receta default (montage + bandpass 0.5–47 Hz + auto-detect bads) a varias
-          sesiones. las que terminan con &gt;25% canales malos quedan en{" "}
+          apply a default recipe (montage + bandpass 0.5–47 Hz + auto-detect bads) to multiple
+          sessions. sessions ending with &gt;25% bad channels get marked{" "}
           <span className="text-amber-400">needs_review</span>.
         </p>
       </header>
@@ -112,7 +112,7 @@ export default function BatchPage() {
 
       {run.data && (
         <section>
-          <h2 className="mb-2 text-xs uppercase tracking-wider text-zinc-500">resultados</h2>
+          <h2 className="mb-2 text-xs uppercase tracking-wider text-zinc-500">results</h2>
           <ul className="flex flex-col gap-1">
             {run.data.results.map((r) => {
               const Icon = STATUS_ICON[r.status];
@@ -125,7 +125,7 @@ export default function BatchPage() {
                   <span className="font-mono">{r.session_id}</span>
                   <span className={STATUS_COLOR[r.status]}>{r.status}</span>
                   <span className="text-zinc-500">
-                    {r.n_events_appended} eventos · {r.n_bads_marked} bads (
+                    {r.n_events_appended} events · {r.n_bads_marked} bads (
                     {(r.bads_fraction * 100).toFixed(0)}%)
                   </span>
                   {r.error && <span className="text-red-400">{r.error}</span>}

@@ -1,4 +1,4 @@
-"""Batch processing: aplicar una receta de eventos a multiples sesiones."""
+"""Batch processing: apply an event recipe to multiple sessions."""
 
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false
 
