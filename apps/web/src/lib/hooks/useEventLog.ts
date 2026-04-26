@@ -2,11 +2,23 @@
 
 import { api } from "@/lib/api/client";
 import type { EventInput, SessionState } from "@eegwebpype/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 export function useSession(id: string) {
   return useQuery({ queryKey: ["session", id], queryFn: () => api.session(id) });
+}
+
+/** Invalidate every query whose result depends on the session's current raw.
+ * Called after any append or undo so the UI reflects the new state. */
+function invalidateDerivedQueries(qc: QueryClient, id: string) {
+  qc.invalidateQueries({ queryKey: ["signal", id] });
+  qc.invalidateQueries({ queryKey: ["psd", id] });
+  qc.invalidateQueries({ queryKey: ["psd-preview", id] });
+  qc.invalidateQueries({ queryKey: ["topomap", id] });
+  qc.invalidateQueries({ queryKey: ["epochs", id] });
+  qc.invalidateQueries({ queryKey: ["ica-components", id] });
+  qc.invalidateQueries({ queryKey: ["setup", id] });
 }
 
 export function useAppendEvent(id: string) {
@@ -15,8 +27,7 @@ export function useAppendEvent(id: string) {
     mutationFn: (payload: EventInput) => api.appendEvent(id, payload),
     onSuccess: (data: SessionState) => {
       qc.setQueryData(["session", id], data);
-      qc.invalidateQueries({ queryKey: ["signal", id] });
-      qc.invalidateQueries({ queryKey: ["psd", id] });
+      invalidateDerivedQueries(qc, id);
     },
   });
 }
@@ -27,8 +38,7 @@ export function useUndo(id: string) {
     mutationFn: () => api.undoLast(id),
     onSuccess: (data: SessionState) => {
       qc.setQueryData(["session", id], data);
-      qc.invalidateQueries({ queryKey: ["signal", id] });
-      qc.invalidateQueries({ queryKey: ["psd", id] });
+      invalidateDerivedQueries(qc, id);
     },
   });
 }

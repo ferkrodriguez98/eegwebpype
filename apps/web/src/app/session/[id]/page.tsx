@@ -12,10 +12,22 @@ import { Skeleton } from "@/components/Skeleton";
 import { PSDPlot } from "@/components/viz/PSDPlot";
 import { ScrollPlot } from "@/components/viz/ScrollPlot";
 import { api } from "@/lib/api/client";
-import { useSession, useUndo, useUndoShortcut } from "@/lib/hooks/useEventLog";
+import { useAppendEvent, useSession, useUndo, useUndoShortcut } from "@/lib/hooks/useEventLog";
+import type { SessionState } from "@eegwebpype/shared";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
+
+function badsFromState(state: SessionState | undefined): Set<string> {
+  const bads = new Set<string>();
+  if (!state) return bads;
+  for (const ev of state.events) {
+    if (ev.op === "mark_bad") for (const c of ev.params.channels) bads.add(c);
+    else if (ev.op === "unmark_bad") for (const c of ev.params.channels) bads.delete(c);
+    else if (ev.op === "interpolate_bads") bads.clear();
+  }
+  return bads;
+}
 
 type ParamsP = Promise<{ id: string }>;
 
@@ -30,6 +42,22 @@ export default function SessionPage({ params }: { params: ParamsP }) {
 
   const [tab, setTab] = useState<Tab>("overview");
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [windowStart, setWindowStart] = useState<number>(0);
+  const [windowLength, setWindowLength] = useState<number>(10);
+
+  const append = useAppendEvent(id);
+  const bads = useMemo(() => badsFromState(session.data), [session.data]);
+
+  const onToggleBad = (channel: string) => {
+    if (bads.has(channel)) {
+      append.mutate({ op: "unmark_bad", params: { channels: [channel] } });
+    } else {
+      append.mutate({
+        op: "mark_bad",
+        params: { channels: [channel], reason: "manual" },
+      });
+    }
+  };
 
   // Tab navigation with [ and ].
   useEffect(() => {
@@ -54,11 +82,16 @@ export default function SessionPage({ params }: { params: ParamsP }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [tab]);
 
+  const tStart = windowStart;
+  const tEnd = windowStart + windowLength;
   const signal = useQuery({
-    queryKey: ["signal", id, 0, 10],
-    queryFn: () => api.signal(id, { tStart: 0, tEnd: 10 }),
+    queryKey: ["signal", id, tStart, tEnd],
+    queryFn: () => api.signal(id, { tStart, tEnd }),
     enabled: !!session.data,
   });
+
+  const duration = session.data?.metadata.duration_seconds ?? 0;
+  const maxStart = Math.max(0, duration - windowLength);
 
   const psd = useQuery({
     queryKey: ["psd", id],
@@ -110,9 +143,56 @@ export default function SessionPage({ params }: { params: ParamsP }) {
       {tab === "overview" && (
         <>
           <section>
-            <h2 className="mb-2 text-sm uppercase tracking-wider text-zinc-500">
-              time scroll · first 10s
-            </h2>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm uppercase tracking-wider text-zinc-500">
+                time scroll · {tStart.toFixed(1)}–{tEnd.toFixed(1)}s
+              </h2>
+              <div className="flex items-center gap-2 text-xs text-zinc-400">
+                <button
+                  type="button"
+                  onClick={() => setWindowStart((s) => Math.max(0, s - windowLength))}
+                  disabled={windowStart === 0}
+                  className="rounded border border-zinc-700 bg-zinc-900 px-2 py-0.5 hover:bg-zinc-800 disabled:opacity-40"
+                >
+                  ←
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={maxStart}
+                  step={Math.max(0.1, windowLength / 4)}
+                  value={Math.min(windowStart, maxStart)}
+                  onChange={(e) => setWindowStart(Number.parseFloat(e.target.value))}
+                  disabled={duration === 0}
+                  className="w-48 accent-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setWindowStart((s) => Math.min(maxStart, s + windowLength))}
+                  disabled={windowStart >= maxStart}
+                  className="rounded border border-zinc-700 bg-zinc-900 px-2 py-0.5 hover:bg-zinc-800 disabled:opacity-40"
+                >
+                  →
+                </button>
+                <label className="ml-2 flex items-center gap-1">
+                  window
+                  <select
+                    value={windowLength}
+                    onChange={(e) => setWindowLength(Number.parseFloat(e.target.value))}
+                    className="rounded border border-zinc-700 bg-zinc-950 px-1 py-0.5"
+                  >
+                    <option value={5}>5s</option>
+                    <option value={10}>10s</option>
+                    <option value={20}>20s</option>
+                    <option value={60}>60s</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <p className="mb-2 text-[10px] text-zinc-600">
+              click a channel name on the left to toggle bad. drag on the plot to box-select an
+              interval. mouse wheel zooms the time axis.
+            </p>
             <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
               {signal.data ? (
                 <ScrollPlot
@@ -121,6 +201,8 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                     .filter(([k]) => k !== "times")
                     .slice(0, 32)
                     .map(([name, data]) => ({ name, data }))}
+                  badChannels={bads}
+                  onToggleBad={onToggleBad}
                 />
               ) : (
                 <Skeleton height={400} label={signal.isFetching ? "loading signal…" : "—"} />
