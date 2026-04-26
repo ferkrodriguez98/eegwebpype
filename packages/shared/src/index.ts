@@ -156,6 +156,25 @@ export type CompareResponse = {
   diff_in_both: string[];
 };
 
+export type BatchStep = { op: string; params: Record<string, unknown> };
+
+export type BatchRecipe = {
+  steps: BatchStep[];
+  auto_detect_bads: boolean;
+  pause_threshold: number;
+};
+
+export type BatchSessionResult = {
+  session_id: string;
+  status: "done" | "needs_review" | "error";
+  n_events_appended: number;
+  n_bads_marked: number;
+  bads_fraction: number;
+  error: string | null;
+};
+
+export type BatchRunResult = { results: BatchSessionResult[] };
+
 export type SessionState = {
   id: SessionId;
   subject: string;

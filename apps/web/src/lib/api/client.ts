@@ -1,4 +1,6 @@
 import type {
+  BatchRecipe,
+  BatchRunResult,
   CompareResponse,
   DetectBadResult,
   EpochsMatrix,
@@ -110,6 +112,8 @@ export const api = {
     get<EpochsMatrix>(`/api/sessions/${id}/epochs?length=${length}`),
   exportSession: (id: string) => post<ExportResult>(`/api/sessions/${id}/export`),
   compare: (subject: string) => get<CompareResponse>(`/api/compare/${subject}`),
+  runBatch: (session_ids: string[], recipe: BatchRecipe) =>
+    post<BatchRunResult>("/api/batch/run", { session_ids, recipe }),
   icaComponents: (id: string) => get<ICAFitResult>(`/api/sessions/${id}/ica/components`),
   fitIcaWS: (
     id: string,
