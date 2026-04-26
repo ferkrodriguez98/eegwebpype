@@ -166,27 +166,93 @@ class TopomapResponse(BaseModel):
     points: list[TopomapPoint]
 
 
-def _project_to_2d(pos_3d: NDArray[np.float64]) -> NDArray[np.float64]:
-    """Stereographic-ish projection from 3D head positions to a 2D disk.
+def _project_azimuthal_equidistant(pos_3d: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Project 3D head-surface points onto a 2D disk using azimuthal-equidistant projection.
 
-    Equivalent in spirit to mne.viz.plot_topomap's default projection.
+    The projection center is the top of the head (positive z axis). Points are mapped
+    so that great-circle distances on the sphere become Euclidean distances on the disk.
+    This is what MNE uses by default (`sphere='auto'`) and produces the canonical
+    EEG topomap layout where Cz lands at the center, frontal channels at top, etc.
     """
     if pos_3d.shape[0] == 0:
         return pos_3d.reshape(0, 2)
-    z = pos_3d[:, 2]
-    z_offset = z.max() + 1.0 if z.size > 0 else 1.0
-    denom = z_offset - z
-    denom[denom == 0] = 1.0
-    return np.column_stack(
-        [pos_3d[:, 0] / denom, pos_3d[:, 1] / denom],
-    )
+
+    pos = pos_3d.astype(np.float64, copy=True)
+    # Replace NaN positions with origin so they don't break the projection.
+    nan_mask = np.isnan(pos).any(axis=1)
+    pos[nan_mask] = 0.0
+
+    # Center on the head sphere center (mean of valid points), then normalize.
+    valid = pos[~nan_mask]
+    if valid.size == 0:
+        return np.zeros((pos.shape[0], 2), dtype=np.float64)
+    center = valid.mean(axis=0)
+    centered = pos - center
+
+    # Use a unit sphere centered on `center`. Compute spherical coords (theta, phi).
+    norms = np.linalg.norm(centered, axis=1)
+    norms[norms == 0] = 1.0
+    unit = centered / norms[:, None]
+
+    # Azimuthal-equidistant projection from the north pole (0, 0, 1).
+    # rho = arccos(z), then x_2d = rho * cos(phi), y_2d = rho * sin(phi)
+    # where phi = atan2(y, x).
+    z = np.clip(unit[:, 2], -1.0, 1.0)
+    rho = np.arccos(z)  # angle from north pole, in [0, pi]
+    phi = np.arctan2(unit[:, 1], unit[:, 0])
+
+    x_2d = rho * np.cos(phi)
+    y_2d = rho * np.sin(phi)
+
+    # Zero-out NaN-positioned channels.
+    out = np.column_stack([x_2d, y_2d])
+    out[nan_mask] = 0.0
+    return out
+
+
+def _ensure_montage_positions(raw: BaseRaw, channel_names: list[str]) -> NDArray[np.float64]:
+    """Return 3D positions for `channel_names`. If raw has none, fall back to the
+    detected standard montage by name lookup."""
+    info: Any = raw.info
+    name_to_idx = {n: i for i, n in enumerate(info["ch_names"])}
+    pos = np.full((len(channel_names), 3), np.nan, dtype=np.float64)
+    for i, name in enumerate(channel_names):
+        idx = name_to_idx.get(name)
+        if idx is None:
+            continue
+        loc = np.asarray(info["chs"][idx]["loc"][:3], dtype=np.float64)
+        if not np.all(np.isnan(loc)) and not (loc == 0).all():
+            pos[i] = loc
+
+    # If everything is NaN, try to fetch positions from a standard montage that
+    # contains these channel names.
+    if np.isnan(pos).all():
+        from pype.services.montage_detect import KNOWN_MONTAGES
+
+        upper_names = [c.upper() for c in channel_names]
+        for montage_name in KNOWN_MONTAGES:
+            try:
+                montage: Any = mne.channels.make_standard_montage(montage_name)
+            except (ValueError, RuntimeError):
+                continue
+            digs = montage.get_positions()
+            ch_pos: dict[str, Any] = digs["ch_pos"]
+            ch_pos_upper = {k.upper(): np.asarray(v, dtype=np.float64) for k, v in ch_pos.items()}
+            hits = sum(1 for n in upper_names if n in ch_pos_upper)
+            if hits / max(1, len(upper_names)) >= 0.5:
+                for i, n in enumerate(upper_names):
+                    p = ch_pos_upper.get(n)
+                    if p is not None:
+                        pos[i] = p
+                break
+    return pos
 
 
 def topomap_for_metric(
     raw: BaseRaw,
     metric: Literal["shape_dev", "power_50hz", "power_alpha", "power_gamma"],
 ) -> TopomapResponse:
-    """Compute one scalar per EEG channel and return positions for plotting."""
+    """Compute one scalar per EEG channel and return projected 2D positions."""
     psd_data, freqs, ch_names = _compute_psd(raw, fmin=0.5, fmax=55.0)
 
     if metric == "shape_dev":
@@ -206,11 +272,8 @@ def topomap_for_metric(
     else:  # pragma: no cover — guarded by Literal
         raise ValueError(f"unknown metric: {metric}")
 
-    info: Any = raw.info
-    pick_types: Any = mne.pick_types
-    picks = pick_types(info, eeg=True, exclude=[])
-    pos_3d = np.array([info["chs"][i]["loc"][:3] for i in picks], dtype=np.float64)
-    pos_2d = _project_to_2d(pos_3d)
+    pos_3d = _ensure_montage_positions(raw, ch_names)
+    pos_2d = _project_azimuthal_equidistant(pos_3d)
 
     points: list[TopomapPoint] = []
     for i, name in enumerate(ch_names):
