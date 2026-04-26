@@ -27,12 +27,10 @@ build/
 *.vmrk
 *.eeg
 
-# Pype workspace data
+# Pype workspace data — entire data/ dir is runtime state
+data/
 apps/api/data/
 apps/web/data/
-data/sessions/
-data/snapshots/
-data/exports/
 
 # Env files
 .env
