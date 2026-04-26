@@ -6,7 +6,13 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from pype.config import SESSIONS_DIR, SOURCES_DIR, WORKSPACE_FILE, ensure_dirs
+from pype.config import (
+    SESSIONS_DIR,
+    SOURCES_DIR,
+    WORKSPACE_FILE,
+    ensure_dirs,
+    load_external_roots,
+)
 from pype.schemas.session import SessionRef, Workspace
 from pype.services.mne_engine import parse_filename
 
@@ -29,16 +35,18 @@ def save_workspace(ws: Workspace) -> None:
 
 
 def scan_sources(extra_root: Path | None = None) -> Workspace:
-    """Scan SOURCES_DIR (and optionally `extra_root`) for .bdf/.fif files.
+    """Scan SOURCES_DIR + configured external roots for .bdf/.fif files.
 
     Registers a SessionRef for each `{SUBJ}_..._{D1|D2}_*.bdf` file found.
+    External roots are read-only — files there are referenced in place,
+    never copied or modified.
     Preserves status of existing entries.
     """
     ensure_dirs()
     existing = {s.id: s for s in load_workspace().sessions}
 
     discovered: dict[str, SessionRef] = {}
-    roots: list[Path] = [SOURCES_DIR]
+    roots: list[Path] = [SOURCES_DIR, *load_external_roots()]
     if extra_root:
         roots.append(extra_root)
 

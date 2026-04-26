@@ -1,5 +1,6 @@
 "use client";
 
+import { ExternalRoots } from "@/components/ExternalRoots";
 import { HealthCheck } from "@/components/HealthCheck";
 import { api } from "@/lib/api/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -33,10 +34,13 @@ export default function HomePage() {
           {scan.isPending ? "scanning…" : "scan sources"}
         </button>
         <span className="text-xs text-zinc-500">
-          buscá .bdf/.fif en{" "}
-          <code className="rounded bg-zinc-900 px-1.5 py-0.5 font-mono">data/sources/</code>
+          .bdf/.fif en{" "}
+          <code className="rounded bg-zinc-900 px-1.5 py-0.5 font-mono">data/sources/</code> +
+          external roots
         </span>
       </div>
+
+      <ExternalRoots />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {ws.data?.sessions.map((s) => (

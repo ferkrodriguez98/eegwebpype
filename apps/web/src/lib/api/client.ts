@@ -57,4 +57,14 @@ export const api = {
     });
     return getArrow(`/api/sessions/${id}/psd?${q}`);
   },
+  externalRoots: () => get<{ external_roots: string[] }>("/api/config/external-roots"),
+  setExternalRoots: (roots: string[]) =>
+    fetch(`${API_URL}/api/config/external-roots`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ external_roots: roots }),
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`PUT /external-roots → ${r.status}`);
+      return (await r.json()) as { external_roots: string[] };
+    }),
 };

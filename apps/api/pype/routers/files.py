@@ -6,7 +6,7 @@ import shutil
 
 from fastapi import APIRouter, HTTPException, UploadFile
 
-from pype.config import SOURCES_DIR, ensure_dirs
+from pype.config import SOURCES_DIR, ensure_dirs, is_under_external_root
 from pype.services.mne_engine import parse_filename
 
 router = APIRouter(prefix="/api/files", tags=["files"])
@@ -27,6 +27,13 @@ async def upload(file: UploadFile) -> dict[str, str]:
 
     ensure_dirs()
     dest = SOURCES_DIR / file.filename
+    # Defensive: SOURCES_DIR should never be under an external read-only root,
+    # but check anyway in case someone misconfigures PYPE_DATA_DIR.
+    if is_under_external_root(dest):
+        raise HTTPException(
+            status_code=403,
+            detail="cannot write under an external read-only root",
+        )
     with dest.open("wb") as out:
         shutil.copyfileobj(file.file, out)
     return {"filename": file.filename, "path": str(dest)}
