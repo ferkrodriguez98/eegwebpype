@@ -114,9 +114,7 @@ def load_ica(session_dir: Path) -> ICA | None:
     return read_ica(str(p), verbose="ERROR")  # type: ignore[no-any-return]
 
 
-def label_components_iclabel(
-    raw: BaseRaw, ica: ICA
-) -> list[tuple[str, float]]:
+def label_components_iclabel(raw: BaseRaw, ica: ICA) -> list[tuple[str, float]]:
     """Run ICLabel if available. Returns list of (label, max_prob) per component.
 
     Falls back to ('unknown', 0.0) for every component if ICLabel is not installed.
@@ -155,9 +153,7 @@ def get_components_for_ui(
 
     # Topographies: one value per channel per component.
     # ica.get_components() returns (n_channels, n_components).
-    components_array: NDArray[np.float64] = np.asarray(
-        ica.get_components(), dtype=np.float64
-    )
+    components_array: NDArray[np.float64] = np.asarray(ica.get_components(), dtype=np.float64)
 
     # Source time series for the first N samples — keep payload small.
     sources: Any = ica.get_sources(raw)
