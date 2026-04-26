@@ -99,7 +99,7 @@ export function BadChannelsPanel({
             disabled={detect.isPending}
             className="rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs hover:bg-zinc-800 disabled:opacity-40"
           >
-            {detect.isPending ? "detectando…" : "auto-detect"}
+            {detect.isPending ? "detecting…" : "auto-detect"}
           </button>
           <button
             type="button"

@@ -1,21 +1,21 @@
 ## Summary
-<!-- 1-3 bullets sobre qué hace este PR -->
+<!-- 1-3 bullets describing what this PR does -->
 
 ## Phase
-<!-- Closes #X (issue de la fase) -->
+<!-- Closes #X (phase issue) -->
 
 ## Changes
-<!-- Lista breve de archivos/áreas tocadas -->
+<!-- Brief list of touched files/areas -->
 
 ## Demo
-<!-- screenshot o gif si aplica -->
+<!-- screenshot or gif if applicable -->
 
 ## Performance
-<!-- mediciones si la fase tiene budget -->
+<!-- measurements if the phase has a budget -->
 
 ## Checklist
-- [ ] CI verde (lint + typecheck + tests + build)
-- [ ] PLAN.md actualizado si hubo desviaciones
-- [ ] Tests agregados
-- [ ] No hay `any` en TypeScript
-- [ ] No hay `print()` debug ni `console.log` huérfano
+- [ ] CI green (lint + typecheck + tests + build)
+- [ ] PLAN.md updated if the design drifted
+- [ ] Tests added
+- [ ] No `any` in TypeScript
+- [ ] No stray `print()` or `console.log`
