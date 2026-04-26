@@ -65,7 +65,9 @@ export function ScrollPlot({
       height,
       padding: [10, 10, 10, 0],
       cursor: {
-        drag: { x: true, y: false, uni: 50 },
+        // Drag is disabled — selecting a range was confusing because there is
+        // no "zoom out" button. Use the window slider above and Cmd+wheel to zoom.
+        drag: { x: false, y: false },
         focus: { prox: 30 },
       },
       legend: { show: false },
@@ -100,9 +102,12 @@ export function ScrollPlot({
     const plot = new uPlot(opts, data, el);
     plotRef.current = plot;
 
-    // Mouse-wheel zoom on the X axis (centered on the cursor).
+    // Mouse-wheel zoom on the X axis, but ONLY when a modifier is held
+    // (Cmd/Ctrl on Mac, Ctrl on others). Without a modifier, the default
+    // page scroll wins so the plot doesn't hijack the user's wheel.
     const onWheel = (e: WheelEvent) => {
       if (!plot) return;
+      if (!(e.metaKey || e.ctrlKey)) return; // let the page scroll
       e.preventDefault();
       const { left } = el.getBoundingClientRect();
       const cx = e.clientX - left;
@@ -137,22 +142,34 @@ export function ScrollPlot({
     if (!plotRef.current) return;
     const plot = plotRef.current;
     const update = () => {
-      const positions = channels.map((ch, i) => {
+      const positions: { name: string; top: number }[] = [];
+      for (let i = 0; i < channels.length; i++) {
+        const ch = channels[i];
+        if (!ch) continue;
         const offset = channelOffsets[i] ?? 0;
         const top = plot.valToPos(offset, "y", false);
-        return { name: ch.name, top };
-      });
+        // valToPos returns NaN before the first paint or if the y scale is
+        // not yet ready. Skip those — labels will appear once the plot is laid out.
+        if (!Number.isFinite(top)) continue;
+        positions.push({ name: ch.name, top });
+      }
       setLabelPositions(positions);
     };
-    update();
+
+    // First paint may not have a valid y scale yet — retry on the next frame.
+    const raf = requestAnimationFrame(update);
+
     // uPlot doesn't expose a clean "after-redraw" hook here; we listen to
     // mousemove on the plot which fires often enough to keep labels glued.
     const el = plotContainerRef.current;
     el?.addEventListener("mousemove", update);
     el?.addEventListener("wheel", update);
+    window.addEventListener("resize", update);
     return () => {
+      cancelAnimationFrame(raf);
       el?.removeEventListener("mousemove", update);
       el?.removeEventListener("wheel", update);
+      window.removeEventListener("resize", update);
     };
   }, [channels, channelOffsets]);
 
