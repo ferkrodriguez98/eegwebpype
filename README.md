@@ -4,6 +4,8 @@ Web-based preprocessing pipeline for resting-state EEG. Runs locally on top of M
 
 Interactive bad-channel marking, in-browser ICA with live progress, filter previews, epoching with peak-to-peak rejection, test-retest comparison, and a fully reproducible event log per session.
 
+> **v1 scope**: optimized for resting-state recordings with two sessions per subject named `D1` and `D2` (test-retest). Generalization to other paradigms, longitudinal studies with N sessions, and arbitrary naming conventions is tracked in the `v2` label on GitHub Issues.
+
 ## Features
 
 - **In-place data scan**: point at a folder of `.bdf` / `.fif` files and process them without copying or moving the originals.
