@@ -74,6 +74,30 @@ export const api = {
       if (!r.ok) throw new Error(`DELETE /events/last → ${r.status}`);
       return (await r.json()) as SessionState;
     }),
+  psdWithFilter: (
+    id: string,
+    params: {
+      l_freq?: number | null;
+      h_freq?: number | null;
+      l_trans?: number | null;
+      h_trans?: number | null;
+      fmin?: number;
+      fmax?: number;
+    },
+  ) => {
+    const q = new URLSearchParams();
+    if (params.l_freq !== null && params.l_freq !== undefined)
+      q.set("l_freq", String(params.l_freq));
+    if (params.h_freq !== null && params.h_freq !== undefined)
+      q.set("h_freq", String(params.h_freq));
+    if (params.l_trans !== null && params.l_trans !== undefined)
+      q.set("l_trans", String(params.l_trans));
+    if (params.h_trans !== null && params.h_trans !== undefined)
+      q.set("h_trans", String(params.h_trans));
+    if (params.fmin !== undefined) q.set("fmin", String(params.fmin));
+    if (params.fmax !== undefined) q.set("fmax", String(params.fmax));
+    return getArrow(`/api/sessions/${id}/psd-with-filter?${q}`);
+  },
   detectBadChannels: (id: string) =>
     post<DetectBadResult>(`/api/sessions/${id}/detect-bad-channels`),
   topomap: (id: string, metric: TopomapMetric) =>

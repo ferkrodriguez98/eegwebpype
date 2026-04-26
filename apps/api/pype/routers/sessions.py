@@ -72,3 +72,46 @@ def get_psd(
     psd, freqs, names = compute_psd(raw, fmin=fmin, fmax=fmax, picks=picks)
     payload = encode_psd_arrow(psd, freqs, names)
     return Response(content=payload, media_type=ARROW_MEDIA_TYPE)
+
+
+@router.get("/{sid}/psd-with-filter")
+def get_psd_with_filter(
+    sid: str,
+    l_freq: Annotated[float | None, Query(ge=0)] = None,
+    h_freq: Annotated[float | None, Query(gt=0)] = None,
+    l_trans: Annotated[float | None, Query(gt=0)] = None,
+    h_trans: Annotated[float | None, Query(gt=0)] = None,
+    fmin: Annotated[float, Query(ge=0)] = 0.5,
+    fmax: Annotated[float, Query(gt=0)] = 47.0,
+) -> Response:
+    """Preview the PSD that would result if a filter were applied,
+    WITHOUT committing the event. Used by the filter tab UI.
+    """
+    try:
+        raw = get_raw_for(sid)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+    from typing import Any
+
+    raw_copy: Any = raw.copy()  # type: ignore[attr-defined]
+    if l_freq is not None or h_freq is not None:
+        extra: dict[str, Any] = {}
+        if l_trans is not None:
+            extra["l_trans_bandwidth"] = l_trans
+        if h_trans is not None:
+            extra["h_trans_bandwidth"] = h_trans
+        try:
+            raw_copy.filter(
+                l_freq=l_freq,
+                h_freq=h_freq,
+                picks="eeg",
+                verbose="ERROR",
+                **extra,
+            )
+        except (ValueError, RuntimeError) as e:
+            raise HTTPException(status_code=400, detail=f"filter error: {e}") from e
+
+    psd, freqs, names = compute_psd(raw_copy, fmin=fmin, fmax=fmax, picks="eeg")
+    payload = encode_psd_arrow(psd, freqs, names)
+    return Response(content=payload, media_type=ARROW_MEDIA_TYPE)
