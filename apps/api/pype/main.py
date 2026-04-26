@@ -14,6 +14,7 @@ from pype.routers import (
     files,
     ica,
     sessions,
+    setup,
     workspace,
 )
 from pype.routers import config as config_router
@@ -38,6 +39,7 @@ app.include_router(workspace.router)
 app.include_router(batch.router)
 app.include_router(compare.router)
 app.include_router(sessions.router)
+app.include_router(setup.router)
 app.include_router(events.router)
 app.include_router(detector.router)
 app.include_router(epochs.router)

@@ -81,6 +81,6 @@ def test_psd_preview_does_not_commit_event(synthetic_bdf: Path) -> None:
     assert r.status_code == 200
 
     state = client.get("/api/sessions/TEST01_D1").json()
-    # Only the seed `load` event should be present.
-    assert len(state["events"]) == 1
+    # Preview must NOT commit a filter event; only the seed events remain.
+    assert all(ev["op"] != "filter" for ev in state["events"])
     assert state["events"][0]["op"] == "load"

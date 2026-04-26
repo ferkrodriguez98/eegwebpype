@@ -9,7 +9,14 @@ from pathlib import Path
 
 from mne.io import BaseRaw  # pyright: ignore[reportMissingTypeStubs]
 
-from pype.schemas.events import Event, EventInput, LoadEvent, LoadEventParams
+from pype.schemas.events import (
+    Event,
+    EventInput,
+    LoadEvent,
+    LoadEventParams,
+    SetMontageEvent,
+    SetMontageParams,
+)
 from pype.schemas.session import SessionState
 from pype.services.event_log import (
     append_event as _append,
@@ -24,6 +31,7 @@ from pype.services.event_log import (
     pop_last_event as _pop,
 )
 from pype.services.mne_engine import load_raw, metadata_from_raw
+from pype.services.montage_detect import detect_montage
 from pype.services.snapshots import (
     invalidate_after,
     save_snapshot,
@@ -45,11 +53,23 @@ def get_or_create_state(sid: str) -> SessionState:
     raw = load_raw(ref.source_file)
     meta = metadata_from_raw(raw)
 
-    seed = LoadEvent(
-        id=new_event_id(),
-        ts=now(),
-        params=LoadEventParams(source_file=ref.source_file),
-    )
+    initial_events: list[Event] = [
+        LoadEvent(
+            id=new_event_id(),
+            ts=now(),
+            params=LoadEventParams(source_file=ref.source_file),
+        ),
+    ]
+    detected = detect_montage(meta.channel_names)
+    if detected:
+        initial_events.append(
+            SetMontageEvent(
+                id=new_event_id(),
+                ts=now(),
+                params=SetMontageParams(montage=detected),
+            )
+        )
+
     state = SessionState(
         id=sid,
         subject=ref.subject,
@@ -57,7 +77,7 @@ def get_or_create_state(sid: str) -> SessionState:
         source_file=ref.source_file,
         created_at=datetime.now(tz=UTC),
         updated_at=datetime.now(tz=UTC),
-        events=[seed],
+        events=initial_events,
         metadata=meta,
     )
     save_state(state)
