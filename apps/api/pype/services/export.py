@@ -1,8 +1,8 @@
-"""Export final: clean-epo.fif + log.json con provenance completo.
+"""Final export: clean-epo.fif + log.json with full provenance.
 
-Se reproduce el raw via replay_log, se aplican (si están en el log) los
-parametros del evento `epoch`, y se rechazan las epocas listadas en
-`reject_epochs`. El resultado se guarda en data/sessions/{id}/exports/.
+The raw is reconstructed via replay_log, the parameters of the `epoch`
+event are applied (if present), and the epochs listed in `reject_epochs`
+are dropped. The result is written to data/sessions/{id}/exports/.
 """
 
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false

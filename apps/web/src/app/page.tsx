@@ -14,6 +14,15 @@ export default function HomePage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["workspace"] }),
   });
 
+  // Group D1 + D2 by subject for the compare links.
+  const subjects = new Map<string, { hasD1: boolean; hasD2: boolean }>();
+  for (const s of ws.data?.sessions ?? []) {
+    const entry = subjects.get(s.subject) ?? { hasD1: false, hasD2: false };
+    if (s.session === "D1") entry.hasD1 = true;
+    if (s.session === "D2") entry.hasD2 = true;
+    subjects.set(s.subject, entry);
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-8">
       <header className="flex items-center justify-between">
@@ -33,34 +42,53 @@ export default function HomePage() {
         >
           {scan.isPending ? "scanning…" : "scan sources"}
         </button>
+        <Link
+          href="/batch"
+          className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm hover:bg-zinc-800"
+        >
+          batch
+        </Link>
         <span className="text-xs text-zinc-500">
-          .bdf/.fif en{" "}
+          .bdf/.fif under{" "}
           <code className="rounded bg-zinc-900 px-1.5 py-0.5 font-mono">data/sources/</code> +
-          external roots
+          configured external roots
         </span>
       </div>
 
       <ExternalRoots />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {ws.data?.sessions.map((s) => (
-          <Link
-            key={s.id}
-            href={`/session/${s.id}`}
-            className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 transition hover:border-zinc-600 hover:bg-zinc-900"
-          >
-            <div className="flex items-baseline justify-between">
-              <span className="font-mono text-lg">{s.subject}</span>
-              <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs">{s.session}</span>
+        {ws.data?.sessions.map((s) => {
+          const subjEntry = subjects.get(s.subject);
+          const canCompare = !!subjEntry?.hasD1 && !!subjEntry?.hasD2;
+          return (
+            <div
+              key={s.id}
+              className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 transition hover:border-zinc-600"
+            >
+              <Link href={`/session/${s.id}`} className="block">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-mono text-lg">{s.subject}</span>
+                  <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs">{s.session}</span>
+                </div>
+                <div className="mt-2 text-xs text-zinc-500">{s.status}</div>
+              </Link>
+              {canCompare && (
+                <Link
+                  href={`/compare/${s.subject}`}
+                  className="mt-2 block text-xs text-emerald-400 hover:text-emerald-300"
+                >
+                  compare D1 vs D2 →
+                </Link>
+              )}
             </div>
-            <div className="mt-2 text-xs text-zinc-500">{s.status}</div>
-          </Link>
-        ))}
+          );
+        })}
         {ws.data && ws.data.sessions.length === 0 && (
           <div className="col-span-full rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-            no hay sesiones. poné archivos en{" "}
-            <code className="rounded bg-zinc-900 px-1.5 py-0.5 font-mono">data/sources/</code> y
-            tocá "scan sources".
+            no sessions yet. drop files into{" "}
+            <code className="rounded bg-zinc-900 px-1.5 py-0.5 font-mono">data/sources/</code> or
+            configure an external root, then click "scan sources".
           </div>
         )}
       </section>

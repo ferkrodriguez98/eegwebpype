@@ -50,11 +50,11 @@ function DiffPanel({ data }: { data: CompareResponse }) {
   const { diff_only_d1, diff_only_d2, diff_in_both } = data;
   return (
     <section className="rounded border border-zinc-800 bg-zinc-950 p-4">
-      <h2 className="mb-2 text-xs uppercase tracking-wider text-zinc-500">diff de canales malos</h2>
+      <h2 className="mb-2 text-xs uppercase tracking-wider text-zinc-500">bad channels diff</h2>
       <div className="grid grid-cols-3 gap-3 text-xs">
-        <DiffColumn label="solo D1" channels={diff_only_d1} color="amber" />
-        <DiffColumn label="solo D2" channels={diff_only_d2} color="cyan" />
-        <DiffColumn label="ambos" channels={diff_in_both} color="zinc" />
+        <DiffColumn label="only D1" channels={diff_only_d1} color="amber" />
+        <DiffColumn label="only D2" channels={diff_only_d2} color="cyan" />
+        <DiffColumn label="both" channels={diff_in_both} color="zinc" />
       </div>
     </section>
   );
@@ -118,15 +118,15 @@ function SessionColumn({
         <span className="font-mono text-sm text-zinc-100">{label}</span>
         {state && (
           <Link href={`/session/${state.id}`} className="text-xs text-zinc-500 hover:text-zinc-300">
-            abrir →
+            open →
           </Link>
         )}
       </div>
-      {!state && <p className="text-xs text-zinc-600">sin sesión {label} para este sujeto</p>}
+      {!state && <p className="text-xs text-zinc-600">no {label} session for this subject</p>}
       {state && (
         <p className="text-xs text-zinc-500">
-          {state.metadata.n_channels_current} canales · {state.metadata.sfreq_current} Hz ·{" "}
-          {state.metadata.duration_seconds.toFixed(1)} s · {state.events.length} eventos
+          {state.metadata.n_channels_current} channels · {state.metadata.sfreq_current} Hz ·{" "}
+          {state.metadata.duration_seconds.toFixed(1)} s · {state.events.length} events
         </p>
       )}
       {psd.data && (

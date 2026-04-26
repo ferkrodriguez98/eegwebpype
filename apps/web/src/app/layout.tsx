@@ -5,12 +5,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "eegwebpype",
-  description: "Plataforma web de preprocesamiento EEG",
+  description: "Web-based EEG preprocessing pipeline",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es" className="dark">
+    <html lang="en" className="dark">
       <body className="min-h-screen antialiased">
         <QueryProvider>{children}</QueryProvider>
       </body>

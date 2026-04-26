@@ -22,7 +22,7 @@ from pype.schemas.health import Health
 app = FastAPI(
     title="eegwebpype",
     version=__version__,
-    description="Backend de preprocesamiento EEG basado en MNE-Python.",
+    description="EEG preprocessing backend powered by MNE-Python.",
 )
 
 app.add_middleware(

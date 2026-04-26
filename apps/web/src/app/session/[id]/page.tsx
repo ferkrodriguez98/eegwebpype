@@ -54,7 +54,7 @@ export default function SessionPage({ params }: { params: ParamsP }) {
           <h1 className="font-mono text-xl">{id}</h1>
           {session.data && (
             <p className="text-xs text-zinc-500">
-              {session.data.metadata.n_channels_current} canales ·{" "}
+              {session.data.metadata.n_channels_current} channels ·{" "}
               {session.data.metadata.sfreq_current} Hz ·{" "}
               {session.data.metadata.duration_seconds.toFixed(1)} s
             </p>
@@ -84,7 +84,7 @@ export default function SessionPage({ params }: { params: ParamsP }) {
         <>
           <section>
             <h2 className="mb-2 text-sm uppercase tracking-wider text-zinc-500">
-              scroll temporal · primeros 10s
+              time scroll · first 10s
             </h2>
             <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
               {signal.data ? (
@@ -97,7 +97,7 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                 />
               ) : (
                 <div className="grid h-[400px] place-items-center text-sm text-zinc-600">
-                  {signal.isFetching ? "cargando…" : "—"}
+                  {signal.isFetching ? "loading…" : "—"}
                 </div>
               )}
             </div>
@@ -115,7 +115,7 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                 />
               ) : (
                 <div className="grid h-[280px] place-items-center text-sm text-zinc-600">
-                  {psd.isFetching ? "cargando…" : "—"}
+                  {psd.isFetching ? "loading…" : "—"}
                 </div>
               )}
             </div>

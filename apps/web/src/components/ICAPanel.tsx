@@ -165,7 +165,7 @@ export function ICAPanel({ sessionId }: { sessionId: string }) {
 
       {components.isError && (
         <div className="rounded border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-500">
-          ICA todavía no fitteado. Tocá "fit ICA" para arrancar.
+          ICA not fitted yet. Click "fit ICA" to start.
         </div>
       )}
 

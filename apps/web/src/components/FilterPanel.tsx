@@ -64,9 +64,7 @@ export function FilterPanel({ sessionId }: Props) {
         >
           {append.isPending ? "applying…" : `apply filter (${lFreq}–${hFreq} Hz)`}
         </button>
-        {preview.isFetching && (
-          <span className="text-xs text-zinc-500">preview actualizándose…</span>
-        )}
+        {preview.isFetching && <span className="text-xs text-zinc-500">preview updating…</span>}
       </div>
 
       <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
@@ -79,7 +77,7 @@ export function FilterPanel({ sessionId }: Props) {
           />
         ) : (
           <div className="grid h-[280px] place-items-center text-sm text-zinc-600">
-            {preview.isFetching ? "cargando preview…" : "—"}
+            {preview.isFetching ? "loading preview…" : "—"}
           </div>
         )}
       </div>

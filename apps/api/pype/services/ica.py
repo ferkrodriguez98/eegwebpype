@@ -1,10 +1,10 @@
-"""ICA fit + ICLabel (opcional). Cache resultado en disco para no recomputar.
+"""ICA fit + ICLabel (optional). The fitted model is cached to disk so the
+components endpoint does not have to re-fit on every request.
 
-Diseno:
-- `fit_ica(raw, ...)` corre `mne.preprocessing.ICA().fit()` y devuelve el ICA.
-- Persistimos el ICA como `data/sessions/{id}/ica.fif` para que el endpoint de
-  componentes lo lea sin recomputar.
-- ICLabel solo si `mne_icalabel` esta disponible (extra `iclabel`).
+Design:
+- `fit_ica(raw, ...)` runs `mne.preprocessing.ICA().fit()` and returns the ICA.
+- The ICA is persisted as `data/sessions/{id}/ica.fif`.
+- ICLabel only if `mne_icalabel` is installed (`iclabel` extra).
 """
 
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false, reportMissingImports=false

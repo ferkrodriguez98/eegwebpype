@@ -12,7 +12,7 @@ type Props = {
   spacing?: number;
 };
 
-/** Apilamiento de canales con offset para que se vean separados. */
+/** Stack channels vertically with an offset so they don't overlap. */
 function buildAlignedData(props: Props): AlignedData {
   const { times, channels, spacing = 1.5e-4 } = props;
   // x is plain JS number array because uPlot wants Number[] not Float64.

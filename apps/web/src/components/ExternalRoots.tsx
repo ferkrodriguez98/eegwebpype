@@ -36,14 +36,14 @@ export function ExternalRoots() {
       </summary>
       <div className="mt-3 flex flex-col gap-2">
         <p className="text-xs text-zinc-500">
-          paths absolutos de carpetas con .bdf que querés leer in-place sin copiarlos. uno por
-          línea. los archivos en estas carpetas son read-only — pype nunca los modifica.
+          absolute paths to folders containing .bdf files you want to read in place. one per line.
+          files inside these folders are read-only — pype never modifies them.
         </p>
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           className="h-24 w-full rounded border border-zinc-700 bg-zinc-950 p-2 font-mono text-xs"
-          placeholder="/Users/fermin/Desktop/REST/Rest/Rest"
+          placeholder="/path/to/your/eeg/data"
         />
         <div className="flex items-center gap-2">
           <button

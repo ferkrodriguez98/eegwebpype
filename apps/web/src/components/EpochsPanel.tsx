@@ -109,11 +109,11 @@ function Heatmap({
   return (
     <div className="overflow-x-auto rounded border border-zinc-800 bg-zinc-950 p-2">
       <p className="mb-2 text-xs text-zinc-500">
-        {matrix.n_epochs} épocas × {matrix.n_channels} canales · umbral{" "}
-        {matrix.threshold_uv.toFixed(0)} µV · {matrix.rejected_indices.length} auto-rechazadas
+        {matrix.n_epochs} epochs × {matrix.n_channels} channels · threshold{" "}
+        {matrix.threshold_uv.toFixed(0)} µV · {matrix.rejected_indices.length} auto-rejected
       </p>
       <svg width={width + 40} height={height + 30}>
-        <title>peak-to-peak por época y canal</title>
+        <title>peak-to-peak by epoch and channel</title>
         {matrix.ptp_matrix.map((row, e) =>
           row.map((v, c) => {
             const t = (v - min) / range;
