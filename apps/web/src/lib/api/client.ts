@@ -1,5 +1,6 @@
 import type {
   DetectBadResult,
+  EpochsMatrix,
   EventInput,
   ICAFitResult,
   SessionState,
@@ -103,6 +104,8 @@ export const api = {
     post<DetectBadResult>(`/api/sessions/${id}/detect-bad-channels`),
   topomap: (id: string, metric: TopomapMetric) =>
     get<TopomapResponse>(`/api/sessions/${id}/topomap?metric=${metric}`),
+  epochs: (id: string, length: number) =>
+    get<EpochsMatrix>(`/api/sessions/${id}/epochs?length=${length}`),
   icaComponents: (id: string) => get<ICAFitResult>(`/api/sessions/${id}/ica/components`),
   fitIcaWS: (
     id: string,

@@ -115,6 +115,16 @@ export type ICAFitResult = {
   components: ICAComponent[];
 };
 
+export type EpochsMatrix = {
+  n_epochs: number;
+  n_channels: number;
+  channel_names: string[];
+  ptp_matrix: number[][];
+  ptp_max_per_epoch: number[];
+  rejected_indices: number[];
+  threshold_uv: number;
+};
+
 export type SessionState = {
   id: SessionId;
   subject: string;

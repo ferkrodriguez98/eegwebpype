@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from pype import __version__
 from pype.routers import config as config_router
-from pype.routers import detector, events, files, ica, sessions, workspace
+from pype.routers import detector, epochs, events, files, ica, sessions, workspace
 from pype.schemas.health import Health
 
 app = FastAPI(
@@ -27,6 +27,7 @@ app.include_router(workspace.router)
 app.include_router(sessions.router)
 app.include_router(events.router)
 app.include_router(detector.router)
+app.include_router(epochs.router)
 app.include_router(ica.router)
 app.include_router(ica.ws_router)
 app.include_router(files.router)
