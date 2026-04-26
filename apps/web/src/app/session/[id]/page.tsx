@@ -4,6 +4,7 @@ import { BadChannelsPanel } from "@/components/BadChannelsPanel";
 import { CleanupPanel } from "@/components/CleanupPanel";
 import { EpochsPanel } from "@/components/EpochsPanel";
 import { EventTimeline } from "@/components/EventTimeline";
+import { ExportPanel } from "@/components/ExportPanel";
 import { FilterPanel } from "@/components/FilterPanel";
 import { ICAPanel } from "@/components/ICAPanel";
 import { PSDPlot } from "@/components/viz/PSDPlot";
@@ -16,7 +17,7 @@ import { use, useState } from "react";
 
 type ParamsP = Promise<{ id: string }>;
 
-const TABS = ["overview", "bad-channels", "filter", "ica", "cleanup", "epochs"] as const;
+const TABS = ["overview", "bad-channels", "filter", "ica", "cleanup", "epochs", "export"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function SessionPage({ params }: { params: ParamsP }) {
@@ -138,6 +139,8 @@ export default function SessionPage({ params }: { params: ParamsP }) {
       {tab === "cleanup" && <CleanupPanel sessionId={id} state={session.data} />}
 
       {tab === "epochs" && <EpochsPanel sessionId={id} />}
+
+      {tab === "export" && <ExportPanel sessionId={id} state={session.data} />}
     </main>
   );
 }
