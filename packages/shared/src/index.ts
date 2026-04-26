@@ -67,6 +67,29 @@ export type Event =
 
 export type EventInput = { op: string; params: Record<string, unknown> };
 
+export type DetectorReason = "auto_power" | "auto_shape" | "auto_neighbors";
+
+export type ChannelDetection = {
+  channel: string;
+  reasons: DetectorReason[];
+  pot_z: number;
+  shape_dev_db: number;
+  neighbor_corr: number;
+};
+
+export type DetectBadResult = {
+  detections: ChannelDetection[];
+  threshold_pot_z: number;
+  threshold_shape_db: number;
+  threshold_neighbor_corr: number;
+};
+
+export type TopomapMetric = "shape_dev" | "power_50hz" | "power_alpha" | "power_gamma";
+
+export type TopomapPoint = { channel: string; x: number; y: number; value: number };
+
+export type TopomapResponse = { metric: TopomapMetric; points: TopomapPoint[] };
+
 export type SessionState = {
   id: SessionId;
   subject: string;

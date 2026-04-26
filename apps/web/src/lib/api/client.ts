@@ -1,4 +1,11 @@
-import type { EventInput, SessionState, Workspace } from "@eegwebpype/shared";
+import type {
+  DetectBadResult,
+  EventInput,
+  SessionState,
+  TopomapMetric,
+  TopomapResponse,
+  Workspace,
+} from "@eegwebpype/shared";
 import { tableFromIPC } from "apache-arrow";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -67,6 +74,10 @@ export const api = {
       if (!r.ok) throw new Error(`DELETE /events/last → ${r.status}`);
       return (await r.json()) as SessionState;
     }),
+  detectBadChannels: (id: string) =>
+    post<DetectBadResult>(`/api/sessions/${id}/detect-bad-channels`),
+  topomap: (id: string, metric: TopomapMetric) =>
+    get<TopomapResponse>(`/api/sessions/${id}/topomap?metric=${metric}`),
   externalRoots: () => get<{ external_roots: string[] }>("/api/config/external-roots"),
   setExternalRoots: (roots: string[]) =>
     fetch(`${API_URL}/api/config/external-roots`, {
