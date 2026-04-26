@@ -154,14 +154,30 @@ export function ICAPanel({ sessionId }: { sessionId: string }) {
           <Wand2 size={14} />
           apply exclude ({excluded.size})
         </button>
-        {progress && (
-          <span className="text-xs text-zinc-500">
-            {progress.phase}
-            {progress.fraction !== undefined ? ` ${Math.round(progress.fraction * 100)}%` : ""}
-          </span>
-        )}
         {fit.error && <span className="text-xs text-red-400">{String(fit.error)}</span>}
       </div>
+
+      {progress && (
+        <div className="rounded border border-zinc-800 bg-zinc-950 p-3">
+          <div className="mb-1 flex items-center justify-between text-xs text-zinc-400">
+            <span>{progress.phase}</span>
+            {progress.fraction !== undefined && <span>{Math.round(progress.fraction * 100)}%</span>}
+          </div>
+          <div className="h-1.5 overflow-hidden rounded bg-zinc-900">
+            <div
+              className="h-full bg-emerald-500 transition-all duration-200"
+              style={{
+                width: progress.fraction !== undefined ? `${progress.fraction * 100}%` : "100%",
+                opacity: progress.fraction !== undefined ? 1 : 0.4,
+              }}
+            />
+          </div>
+          <p className="mt-2 text-[10px] text-zinc-500">
+            ICA can take up to a minute on large recordings. The browser is free to do other work —
+            progress is streamed over WebSocket.
+          </p>
+        </div>
+      )}
 
       {components.isError && (
         <div className="rounded border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-500">

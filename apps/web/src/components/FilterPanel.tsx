@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/Skeleton";
 import { PSDPlot } from "@/components/viz/PSDPlot";
 import { api } from "@/lib/api/client";
 import { useAppendEvent } from "@/lib/hooks/useEventLog";
@@ -76,9 +77,7 @@ export function FilterPanel({ sessionId }: Props) {
               .map(([name, data]) => ({ name, data }))}
           />
         ) : (
-          <div className="grid h-[280px] place-items-center text-sm text-zinc-600">
-            {preview.isFetching ? "loading preview…" : "—"}
-          </div>
+          <Skeleton height={280} label={preview.isFetching ? "computing preview…" : "—"} />
         )}
       </div>
     </div>
