@@ -1,0 +1,52 @@
+name: Dev smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: dev-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  next-dev-starts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: "10.12.3" }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+
+      - name: start next dev (turbopack) and probe
+        working-directory: apps/web
+        run: |
+          set -e
+          pnpm dev > /tmp/next-dev.log 2>&1 &
+          DEV_PID=$!
+          # Wait up to 60s for the server to respond.
+          for i in $(seq 1 60); do
+            if curl -fs -o /dev/null http://localhost:3000; then
+              echo "next dev responding after ${i}s"
+              break
+            fi
+            if ! kill -0 $DEV_PID 2>/dev/null; then
+              echo "next dev process died"
+              cat /tmp/next-dev.log
+              exit 1
+            fi
+            sleep 1
+          done
+          # Final probe — fail loudly if still not ready.
+          curl -fs -o /dev/null http://localhost:3000
+          # Detect the specific Turbopack-incompatible-config error.
+          if grep -q "Unsupported Next.js configuration" /tmp/next-dev.log; then
+            echo "Turbopack rejected the next.config:"
+            cat /tmp/next-dev.log
+            exit 1
+          fi
+          kill $DEV_PID || true
