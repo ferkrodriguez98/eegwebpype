@@ -113,7 +113,10 @@
       "Read(/Users/fermin/Desktop/REST/Rest/Rest/**)",
       "Bash(cd /Users/fermin/Desktop/REST/eegwebpype*)",
       "Bash(git checkout -b *)",
-      "Bash(git push -u *)"
+      "Bash(git push -u *)",
+      "Bash($HOME/.local/bin/uv*)",
+      "Bash(/Users/fermin/.local/bin/uv*)",
+      "Bash(uv*)"
     ]
   }
 }
