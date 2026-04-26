@@ -7,6 +7,7 @@ import { EventTimeline } from "@/components/EventTimeline";
 import { ExportPanel } from "@/components/ExportPanel";
 import { FilterPanel } from "@/components/FilterPanel";
 import { ICAPanel } from "@/components/ICAPanel";
+import { SetupBanner } from "@/components/SetupBanner";
 import { PSDPlot } from "@/components/viz/PSDPlot";
 import { ScrollPlot } from "@/components/viz/ScrollPlot";
 import { api } from "@/lib/api/client";
@@ -77,6 +78,8 @@ export default function SessionPage({ params }: { params: ParamsP }) {
           ))}
         </nav>
       </header>
+
+      <SetupBanner sessionId={id} />
 
       <EventTimeline events={events} canUndo={canUndo} onUndo={() => undo.mutate()} />
 

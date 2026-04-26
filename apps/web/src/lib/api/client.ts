@@ -8,6 +8,7 @@ import type {
   ExportResult,
   ICAFitResult,
   SessionState,
+  SetupSuggestions,
   TopomapMetric,
   TopomapResponse,
   Workspace,
@@ -114,6 +115,7 @@ export const api = {
   compare: (subject: string) => get<CompareResponse>(`/api/compare/${subject}`),
   runBatch: (session_ids: string[], recipe: BatchRecipe) =>
     post<BatchRunResult>("/api/batch/run", { session_ids, recipe }),
+  setupSuggestions: (id: string) => get<SetupSuggestions>(`/api/sessions/${id}/setup`),
   icaComponents: (id: string) => get<ICAFitResult>(`/api/sessions/${id}/ica/components`),
   fitIcaWS: (
     id: string,

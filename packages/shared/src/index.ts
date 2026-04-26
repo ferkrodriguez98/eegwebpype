@@ -175,6 +175,13 @@ export type BatchSessionResult = {
 
 export type BatchRunResult = { results: BatchSessionResult[] };
 
+export type SetupSuggestions = {
+  detected_montage: string | null;
+  montage_already_applied: boolean;
+  suggested_sfreq: number | null;
+  sfreq_already_resampled: boolean;
+};
+
 export type SessionState = {
   id: SessionId;
   subject: string;

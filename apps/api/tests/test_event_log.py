@@ -57,9 +57,9 @@ def test_append_event(synthetic_bdf: Path) -> None:
     )
     assert r.status_code == 200, r.text
     body = r.json()
-    assert len(body["events"]) == 2  # load + mark_bad
-    assert body["events"][1]["op"] == "mark_bad"
-    assert body["events"][1]["params"]["channels"] == ["Fp1"]
+    # load + auto-applied set_montage + mark_bad
+    assert body["events"][-1]["op"] == "mark_bad"
+    assert body["events"][-1]["params"]["channels"] == ["Fp1"]
 
 
 def test_undo_event(synthetic_bdf: Path) -> None:
@@ -72,17 +72,22 @@ def test_undo_event(synthetic_bdf: Path) -> None:
     r = client.delete("/api/sessions/TEST01_D1/events/last")
     assert r.status_code == 200
     body = r.json()
-    assert len(body["events"]) == 1
-    assert body["events"][0]["op"] == "load"
+    # The mark_bad got popped; load + set_montage remain.
+    assert all(ev["op"] != "mark_bad" for ev in body["events"])
 
 
 def test_undo_cannot_remove_load(synthetic_bdf: Path) -> None:
     client = make_client()
     client.post("/api/workspace/scan")
-    r = client.delete("/api/sessions/TEST01_D1/events/last")
-    assert r.status_code == 200
-    body = r.json()
-    assert len(body["events"]) == 1  # load preserved
+    body: dict[str, list[dict[str, str]]] = {"events": []}
+    # Pop until only the load event remains.
+    for _ in range(10):
+        r = client.delete("/api/sessions/TEST01_D1/events/last")
+        body = r.json()
+        if len(body["events"]) == 1:
+            break
+    assert len(body["events"]) == 1
+    assert body["events"][0]["op"] == "load"
 
 
 def test_replay_marks_bad_channel(synthetic_bdf: Path) -> None:
@@ -182,5 +187,5 @@ def test_state_persists_between_requests(synthetic_bdf: Path) -> None:
     r = client.get("/api/sessions/TEST01_D1")
     assert r.status_code == 200
     body = r.json()
-    assert len(body["events"]) == 2
-    assert body["events"][1]["op"] == "mark_bad"
+    # load (+ auto set_montage) + mark_bad — last event must be the manual one.
+    assert body["events"][-1]["op"] == "mark_bad"

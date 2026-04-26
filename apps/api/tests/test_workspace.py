@@ -41,8 +41,9 @@ def test_session_state_creates_with_load_event(synthetic_bdf: Path) -> None:
     state = get_or_create_state("TEST01_D1")
     assert state.id == "TEST01_D1"
     assert state.subject == "TEST01"
-    assert len(state.events) == 1
     assert state.events[0].op == "load"
+    # Auto-applied set_montage event after load (channel names match standard_1020).
+    assert any(ev.op == "set_montage" for ev in state.events)
     assert state.metadata.n_channels_original == 8
     assert state.metadata.sfreq_original == 256.0
 
