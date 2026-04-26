@@ -63,7 +63,15 @@
       "Bash(cd *)",
       "Bash(export *)",
       "Bash(source *)",
-      "Bash(echo *)"
+      "Bash(echo *)",
+      "Bash(pnpm exec biome*)",
+      "Bash(pnpm exec tsc*)",
+      "Bash(pnpm exec next*)",
+      "Bash(pnpm exec vitest*)",
+      "Bash(pnpm exec playwright*)",
+      "Bash(pnpm exec turbo*)",
+      "Bash(cat *)",
+      "Bash(jq *)"
     ]
   }
 }
