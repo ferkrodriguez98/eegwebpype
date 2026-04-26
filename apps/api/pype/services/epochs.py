@@ -63,9 +63,7 @@ def epochs_matrix(
 ) -> EpochsMatrix:
     """Compute peak-to-peak by (epoch, channel) and tag rejected epochs."""
     epochs = make_epochs(raw, length_seconds, overlap, detrend)
-    data: NDArray[np.float64] = np.asarray(
-        epochs.get_data(picks="eeg"), dtype=np.float64
-    )
+    data: NDArray[np.float64] = np.asarray(epochs.get_data(picks="eeg"), dtype=np.float64)
     # data shape: (n_epochs, n_channels, n_times)
     ptp = np.ptp(data, axis=2)  # (n_epochs, n_channels), in volts
     ptp_uv = ptp * 1e6
