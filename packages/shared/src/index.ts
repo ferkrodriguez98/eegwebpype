@@ -90,6 +90,20 @@ export type TopomapPoint = { channel: string; x: number; y: number; value: numbe
 
 export type TopomapResponse = { metric: TopomapMetric; points: TopomapPoint[] };
 
+export type ICAComponent = {
+  index: number;
+  label: string;
+  prob: number;
+  topo: number[];
+  series: number[];
+};
+
+export type ICAFitResult = {
+  n_components: number;
+  method: string;
+  components: ICAComponent[];
+};
+
 export type SessionState = {
   id: SessionId;
   subject: string;

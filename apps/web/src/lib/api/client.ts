@@ -1,6 +1,7 @@
 import type {
   DetectBadResult,
   EventInput,
+  ICAFitResult,
   SessionState,
   TopomapMetric,
   TopomapResponse,
@@ -102,6 +103,38 @@ export const api = {
     post<DetectBadResult>(`/api/sessions/${id}/detect-bad-channels`),
   topomap: (id: string, metric: TopomapMetric) =>
     get<TopomapResponse>(`/api/sessions/${id}/topomap?metric=${metric}`),
+  icaComponents: (id: string) => get<ICAFitResult>(`/api/sessions/${id}/ica/components`),
+  fitIcaWS: (
+    id: string,
+    n: number,
+    onProgress: (e: { phase: string; fraction?: number }) => void,
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const wsUrl = `${API_URL.replace(/^http/, "ws")}/ws/sessions/${id}/ica`;
+      const ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ n_components: n, method: "extended_infomax", random_state: 42 }));
+      };
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data) as { phase?: string; error?: string; fraction?: number };
+          if (data.error) {
+            ws.close();
+            reject(new Error(data.error));
+            return;
+          }
+          if (data.phase) onProgress({ phase: data.phase, fraction: data.fraction });
+          if (data.phase === "ready") {
+            ws.close();
+            resolve();
+          }
+        } catch (e) {
+          reject(e instanceof Error ? e : new Error("ws parse error"));
+        }
+      };
+      ws.onerror = () => reject(new Error("websocket error"));
+    });
+  },
   externalRoots: () => get<{ external_roots: string[] }>("/api/config/external-roots"),
   setExternalRoots: (roots: string[]) =>
     fetch(`${API_URL}/api/config/external-roots`, {
