@@ -147,6 +147,15 @@ export type ExportResult = {
   n_channels: number;
 };
 
+export type CompareResponse = {
+  subject: string;
+  d1: SessionState | null;
+  d2: SessionState | null;
+  diff_only_d1: string[];
+  diff_only_d2: string[];
+  diff_in_both: string[];
+};
+
 export type SessionState = {
   id: SessionId;
   subject: string;

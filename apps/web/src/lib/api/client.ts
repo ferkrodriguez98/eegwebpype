@@ -1,4 +1,5 @@
 import type {
+  CompareResponse,
   DetectBadResult,
   EpochsMatrix,
   EventInput,
@@ -108,6 +109,7 @@ export const api = {
   epochs: (id: string, length: number) =>
     get<EpochsMatrix>(`/api/sessions/${id}/epochs?length=${length}`),
   exportSession: (id: string) => post<ExportResult>(`/api/sessions/${id}/export`),
+  compare: (subject: string) => get<CompareResponse>(`/api/compare/${subject}`),
   icaComponents: (id: string) => get<ICAFitResult>(`/api/sessions/${id}/ica/components`),
   fitIcaWS: (
     id: string,
