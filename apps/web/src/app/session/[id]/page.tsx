@@ -8,13 +8,14 @@ import { ExportPanel } from "@/components/ExportPanel";
 import { FilterPanel } from "@/components/FilterPanel";
 import { ICAPanel } from "@/components/ICAPanel";
 import { SetupBanner } from "@/components/SetupBanner";
+import { Skeleton } from "@/components/Skeleton";
 import { PSDPlot } from "@/components/viz/PSDPlot";
 import { ScrollPlot } from "@/components/viz/ScrollPlot";
 import { api } from "@/lib/api/client";
 import { useSession, useUndo, useUndoShortcut } from "@/lib/hooks/useEventLog";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 type ParamsP = Promise<{ id: string }>;
 
@@ -29,6 +30,29 @@ export default function SessionPage({ params }: { params: ParamsP }) {
 
   const [tab, setTab] = useState<Tab>("overview");
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+
+  // Tab navigation with [ and ].
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInput =
+        target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if (isInput) return;
+      if (e.key === "[") {
+        e.preventDefault();
+        const idx = TABS.indexOf(tab);
+        const next = TABS[(idx - 1 + TABS.length) % TABS.length];
+        if (next) setTab(next);
+      } else if (e.key === "]") {
+        e.preventDefault();
+        const idx = TABS.indexOf(tab);
+        const next = TABS[(idx + 1) % TABS.length];
+        if (next) setTab(next);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tab]);
 
   const signal = useQuery({
     queryKey: ["signal", id, 0, 10],
@@ -99,9 +123,7 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                     .map(([name, data]) => ({ name, data }))}
                 />
               ) : (
-                <div className="grid h-[400px] place-items-center text-sm text-zinc-600">
-                  {signal.isFetching ? "loading…" : "—"}
-                </div>
+                <Skeleton height={400} label={signal.isFetching ? "loading signal…" : "—"} />
               )}
             </div>
           </section>
@@ -117,9 +139,7 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                     .map(([name, data]) => ({ name, data }))}
                 />
               ) : (
-                <div className="grid h-[280px] place-items-center text-sm text-zinc-600">
-                  {psd.isFetching ? "loading…" : "—"}
-                </div>
+                <Skeleton height={280} label={psd.isFetching ? "loading PSD…" : "—"} />
               )}
             </div>
           </section>
