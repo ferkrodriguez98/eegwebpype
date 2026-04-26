@@ -1,21 +1,25 @@
 "use client";
 
+import { EventTimeline } from "@/components/EventTimeline";
 import { PSDPlot } from "@/components/viz/PSDPlot";
 import { ScrollPlot } from "@/components/viz/ScrollPlot";
 import { api } from "@/lib/api/client";
+import { useAppendEvent, useSession, useUndo, useUndoShortcut } from "@/lib/hooks/useEventLog";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { use } from "react";
+import { use, useState } from "react";
 
 type ParamsP = Promise<{ id: string }>;
 
 export default function SessionPage({ params }: { params: ParamsP }) {
   const { id } = use(params);
 
-  const session = useQuery({
-    queryKey: ["session", id],
-    queryFn: () => api.session(id),
-  });
+  const session = useSession(id);
+  const append = useAppendEvent(id);
+  const undo = useUndo(id);
+  useUndoShortcut(() => undo.mutate());
+
+  const [bad, setBad] = useState<string>("");
 
   const signal = useQuery({
     queryKey: ["signal", id, 0, 10],
@@ -28,6 +32,16 @@ export default function SessionPage({ params }: { params: ParamsP }) {
     queryFn: () => api.psd(id, { fmin: 1, fmax: 47 }),
     enabled: !!session.data,
   });
+
+  const events = session.data?.events ?? [];
+  const canUndo = events.length > 1;
+
+  const onMarkBad = () => {
+    const ch = bad.trim();
+    if (!ch) return;
+    append.mutate({ op: "mark_bad", params: { channels: [ch], reason: "manual" } });
+    setBad("");
+  };
 
   return (
     <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 p-6">
@@ -45,6 +59,28 @@ export default function SessionPage({ params }: { params: ParamsP }) {
             </p>
           )}
         </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onMarkBad();
+          }}
+          className="flex items-center gap-2"
+        >
+          <input
+            type="text"
+            value={bad}
+            onChange={(e) => setBad(e.target.value)}
+            placeholder="canal (ej. A1)"
+            className="rounded border border-zinc-700 bg-zinc-950 px-2 py-1 font-mono text-xs"
+          />
+          <button
+            type="submit"
+            disabled={append.isPending || !bad.trim()}
+            className="rounded border border-zinc-700 bg-zinc-900 px-3 py-1 text-xs hover:bg-zinc-800 disabled:opacity-40"
+          >
+            mark bad
+          </button>
+        </form>
       </header>
 
       {session.isError && (
@@ -52,6 +88,8 @@ export default function SessionPage({ params }: { params: ParamsP }) {
           error: {String(session.error)}
         </div>
       )}
+
+      <EventTimeline events={events} canUndo={canUndo} onUndo={() => undo.mutate()} />
 
       <section>
         <h2 className="mb-2 text-sm uppercase tracking-wider text-zinc-500">

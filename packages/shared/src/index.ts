@@ -35,14 +35,37 @@ export type SessionMetadata = {
   channel_names: string[];
 };
 
-export type LoadEvent = {
-  id: string;
-  ts: string;
-  op: "load";
-  params: { source_file: string };
+type EventBase = { id: string; ts: string };
+
+export type BadReason = "auto_power" | "auto_shape" | "auto_neighbors" | "manual";
+
+export type LoadEvent = EventBase & { op: "load"; params: { source_file: string } };
+export type DropChannelsEvent = EventBase & { op: "drop_channels"; params: { channels: string[] } };
+export type SetMontageEvent = EventBase & { op: "set_montage"; params: { montage: string } };
+export type ResampleEvent = EventBase & { op: "resample"; params: { sfreq: number } };
+export type FilterEvent = EventBase & {
+  op: "filter";
+  params: { l_freq?: number; h_freq?: number; l_trans?: number; h_trans?: number };
+};
+export type MarkBadEvent = EventBase & {
+  op: "mark_bad";
+  params: { channels: string[]; reason: BadReason };
+};
+export type UnmarkBadEvent = EventBase & {
+  op: "unmark_bad";
+  params: { channels: string[] };
 };
 
-export type Event = LoadEvent;
+export type Event =
+  | LoadEvent
+  | DropChannelsEvent
+  | SetMontageEvent
+  | ResampleEvent
+  | FilterEvent
+  | MarkBadEvent
+  | UnmarkBadEvent;
+
+export type EventInput = { op: string; params: Record<string, unknown> };
 
 export type SessionState = {
   id: SessionId;

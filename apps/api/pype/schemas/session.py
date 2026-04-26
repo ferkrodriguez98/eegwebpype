@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from pype.schemas.events import Event
+
 Session = Literal["D1", "D2"]
 SessionStatus = Literal["raw", "in_progress", "done", "exported", "needs_review"]
 
@@ -20,19 +22,10 @@ class SessionMetadata(BaseModel):
     channel_names: list[str]
 
 
-class LoadEventParams(BaseModel):
-    source_file: str
-
-
-class LoadEvent(BaseModel):
-    id: str
-    ts: datetime
-    op: Literal["load"] = "load"
-    params: LoadEventParams
-
-
-# F2 will introduce the full Event union. For F1, only LoadEvent exists.
-Event = LoadEvent
+class Snapshot(BaseModel):
+    after_event: str
+    fif_path: str
+    created_at: datetime
 
 
 class SessionState(BaseModel):
@@ -43,7 +36,7 @@ class SessionState(BaseModel):
     created_at: datetime
     updated_at: datetime
     events: list[Event]
-    snapshots: list[dict[str, str]] = Field(default_factory=lambda: [])
+    snapshots: list[Snapshot] = Field(default_factory=lambda: [])
     metadata: SessionMetadata
 
 

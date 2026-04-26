@@ -1,4 +1,4 @@
-import type { SessionState, Workspace } from "@eegwebpype/shared";
+import type { EventInput, SessionState, Workspace } from "@eegwebpype/shared";
 import { tableFromIPC } from "apache-arrow";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -57,6 +57,16 @@ export const api = {
     });
     return getArrow(`/api/sessions/${id}/psd?${q}`);
   },
+  appendEvent: (id: string, payload: EventInput) =>
+    post<SessionState>(`/api/sessions/${id}/events`, payload),
+  undoLast: (id: string) =>
+    fetch(`${API_URL}/api/sessions/${id}/events/last`, {
+      method: "DELETE",
+      cache: "no-store",
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`DELETE /events/last → ${r.status}`);
+      return (await r.json()) as SessionState;
+    }),
   externalRoots: () => get<{ external_roots: string[] }>("/api/config/external-roots"),
   setExternalRoots: (roots: string[]) =>
     fetch(`${API_URL}/api/config/external-roots`, {
