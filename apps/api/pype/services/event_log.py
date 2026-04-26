@@ -1,9 +1,9 @@
-"""Append-only event log + replay determinístico.
+"""Append-only event log with deterministic replay.
 
 Each `Event` describes one operation. Replaying the events in order,
 starting from the source file, reproduces the exact state of the session.
 
-Snapshots cache `.fif` files at hitos pesados (post-filter, post-ICA, etc.)
+Snapshots cache `.fif` files at heavy milestones (post-filter, post-ICA, etc.)
 so replay can fast-forward without redoing every step.
 """
 

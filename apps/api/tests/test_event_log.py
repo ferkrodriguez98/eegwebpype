@@ -1,4 +1,4 @@
-"""Append-only event log: append, pop, replay determinístico, idempotencia."""
+"""Append-only event log: append, pop, deterministic replay, idempotency."""
 
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false
 

@@ -1,13 +1,11 @@
-"""Bad channel detector con 3 metricas combinadas.
+"""Bad-channel detector with three combined metrics.
 
-Replica la heuristica que validamos manualmente sobre el TFG:
-1. Potencia total > mediana + N*MAD.
-2. Forma del log-PSD desviada del grupo (RMS de diferencia con la mediana).
-3. Correlacion espacial baja con vecinos mas cercanos.
+1. Total power vs the median across channels (z-MAD threshold).
+2. Shape of the log-PSD vs the median curve of the group (RMS difference).
+3. Spatial correlation against nearest neighbors.
 
-El criterio combinado: cualquier canal que dispare al menos uno de los flags
-es candidato. Los reasons quedan etiquetados en el payload para que la UI
-los muestre con badges.
+A channel is flagged if it triggers any of the metrics. Each detection
+carries the list of reasons so the UI can render them as badges.
 """
 
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false

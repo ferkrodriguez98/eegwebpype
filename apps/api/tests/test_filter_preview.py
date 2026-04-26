@@ -1,4 +1,4 @@
-"""Filter preview endpoint: PSD post-filtro sin commitear evento."""
+"""Filter preview endpoint: returns the post-filter PSD without committing an event."""
 
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false
 
