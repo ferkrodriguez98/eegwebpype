@@ -21,7 +21,7 @@ from numpy.typing import NDArray
 from pydantic import BaseModel
 from scipy.spatial.distance import cdist  # pyright: ignore[reportMissingTypeStubs]
 
-# Default knobs — empirically tuned on TFG dataset.
+# Default thresholds — empirically tuned on resting-state EEG datasets.
 DEFAULT_MAD_K: float = 4.0
 DEFAULT_POT_Z_EXTREME: float = 8.0
 DEFAULT_SHAPE_FMIN: float = 1.0
