@@ -83,16 +83,21 @@ export default function SessionPage({ params }: { params: ParamsP }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [tab]);
 
-  const tStart = windowStart;
-  const tEnd = windowStart + windowLength;
+  const duration = session.data?.metadata.duration_seconds ?? 0;
+  // Clamp the requested window so we never request beyond the recording.
+  const effectiveLength = duration > 0 ? Math.min(windowLength, duration) : windowLength;
+  const maxStart = Math.max(0, duration - effectiveLength);
+  const tStart = Math.max(0, Math.min(windowStart, maxStart));
+  const tEnd = Math.min(
+    duration > 0 ? duration : tStart + effectiveLength,
+    tStart + effectiveLength,
+  );
+
   const signal = useQuery({
     queryKey: ["signal", id, tStart, tEnd],
     queryFn: () => api.signal(id, { tStart, tEnd }),
     enabled: !!session.data,
   });
-
-  const duration = session.data?.metadata.duration_seconds ?? 0;
-  const maxStart = Math.max(0, duration - windowLength);
 
   const psd = useQuery({
     queryKey: ["psd", id],
@@ -184,16 +189,19 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                     { value: 5, label: "5s" },
                     { value: 10, label: "10s" },
                     { value: 20, label: "20s" },
-                    { value: 60, label: "60s" },
+                    { value: 60, label: "1m" },
+                    { value: 120, label: "2m" },
+                    { value: 300, label: "5m" },
+                    { value: Math.max(5, Math.ceil(duration)), label: "full" },
                   ]}
                 />
               </div>
             </div>
             <p className="mb-2 text-[10px] text-zinc-600">
-              click a channel name on the left to toggle bad. hold ⌘ and scroll to zoom the time
-              axis. plain wheel scrolls the page.
+              click a channel name on the left to toggle bad · hover to inspect a channel · wheel
+              over the plot to pan in time · ⌘+wheel to zoom
             </p>
-            <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
+            <div className="relative rounded border border-zinc-800 bg-zinc-950 p-2">
               {signal.data ? (
                 <ScrollPlot
                   times={signal.data.times ?? new Float32Array()}
@@ -203,16 +211,24 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                     .map(([name, data]) => ({ name, data }))}
                   badChannels={bads}
                   onToggleBad={onToggleBad}
+                  onPan={(delta) =>
+                    setWindowStart((s) => Math.max(0, Math.min(maxStart, s + delta)))
+                  }
                 />
               ) : (
                 <Skeleton height={400} label={signal.isFetching ? "loading signal…" : "—"} />
+              )}
+              {signal.data && signal.isFetching && (
+                <div className="pointer-events-none absolute right-3 top-3 rounded bg-zinc-900/90 px-2 py-0.5 text-[10px] text-zinc-400 backdrop-blur">
+                  refreshing…
+                </div>
               )}
             </div>
           </section>
 
           <section>
             <h2 className="mb-2 text-sm uppercase tracking-wider text-zinc-500">PSD · 1–47 Hz</h2>
-            <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
+            <div className="relative rounded border border-zinc-800 bg-zinc-950 p-2">
               {psd.data ? (
                 <PSDPlot
                   freqs={psd.data.freqs ?? new Float32Array()}
@@ -222,6 +238,11 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                 />
               ) : (
                 <Skeleton height={280} label={psd.isFetching ? "loading PSD…" : "—"} />
+              )}
+              {psd.data && psd.isFetching && (
+                <div className="pointer-events-none absolute right-3 top-3 rounded bg-zinc-900/90 px-2 py-0.5 text-[10px] text-zinc-400 backdrop-blur">
+                  refreshing…
+                </div>
               )}
             </div>
           </section>

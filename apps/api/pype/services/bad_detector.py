@@ -98,32 +98,52 @@ def detect_bad_channels(
     pot_z = np.abs(total_power - med_p) / (1.4826 * mad_p + 1e-12)
     flag_pot = pot_z > pot_z_extreme
 
-    # Metric 3: spatial neighbor correlation.
+    # Metric 3: spatial neighbor correlation. Only run for channels that have
+    # a finite, non-zero position (e.g. EEG channels with a montage applied).
+    # Channels without a position get nbr_corr=NaN so they neither pass nor
+    # fail the threshold by accident.
     info: Any = raw.info
     pick_types: Any = mne.pick_types
     picks = pick_types(info, eeg=True, exclude=[])
-    pos = np.array([info["chs"][i]["loc"][:3] for i in picks], dtype=np.float64)
-    has_real_positions = (
-        pos.shape[0] >= n_neighbors + 1
-        and bool(np.all(np.isfinite(pos)))
-        and bool(np.any(pos != 0))
-    )
-    if has_real_positions:
-        d = cdist(pos, pos)
+    name_to_pick = {info["chs"][i]["ch_name"]: i for i in picks}
+
+    # Build per-channel positions aligned with `ch_names`. Anything missing
+    # from the picks (or with NaN/0 location) is masked out.
+    n = len(ch_names)
+    pos_full = np.full((n, 3), np.nan, dtype=np.float64)
+    valid_mask = np.zeros(n, dtype=bool)
+    data_full: list[np.ndarray] = []
+    raw_data_all: NDArray[np.float64] = np.asarray(raw.get_data(picks=picks), dtype=np.float64)
+    pick_to_row = {p: i for i, p in enumerate(picks)}
+    for i, name in enumerate(ch_names):
+        pidx = name_to_pick.get(name)
+        if pidx is None:
+            data_full.append(np.zeros(raw_data_all.shape[1], dtype=np.float64))
+            continue
+        loc = np.asarray(info["chs"][pidx]["loc"][:3], dtype=np.float64)
+        if np.all(np.isfinite(loc)) and not (loc == 0).all():
+            pos_full[i] = loc
+            valid_mask[i] = True
+        data_full.append(raw_data_all[pick_to_row[pidx]])
+
+    nbr_corr = np.full(n, np.nan, dtype=np.float64)
+    valid_idx = np.where(valid_mask)[0]
+    if valid_idx.size >= n_neighbors + 1:
+        valid_pos = pos_full[valid_idx]
+        d = cdist(valid_pos, valid_pos)
         np.fill_diagonal(d, np.inf)
         neighbors = np.argsort(d, axis=1)[:, :n_neighbors]
-        data: NDArray[np.float64] = np.asarray(raw.get_data(picks=picks), dtype=np.float64)
-        std = data.std(axis=1, keepdims=True)
+        valid_data = np.stack([data_full[i] for i in valid_idx])
+        std = valid_data.std(axis=1, keepdims=True)
         std[std == 0] = 1.0
-        z = (data - data.mean(axis=1, keepdims=True)) / std
-        corr = (z @ z.T) / data.shape[1]
-        nbr_corr = np.array(
-            [float(np.mean(np.abs(corr[i, neighbors[i]]))) for i in range(len(ch_names))]
-        )
-    else:
-        nbr_corr = np.full(len(ch_names), 1.0, dtype=np.float64)
+        z = (valid_data - valid_data.mean(axis=1, keepdims=True)) / std
+        corr = (z @ z.T) / valid_data.shape[1]
+        for j, original_i in enumerate(valid_idx):
+            nbr_corr[original_i] = float(np.mean(np.abs(corr[j, neighbors[j]])))
 
-    flag_nbr = (nbr_corr < neighbor_corr_thr) & (shape_dev > 0.5 * thr_shp)
+    # Channels without spatial info (NaN nbr_corr) cannot trigger the neighbor flag.
+    finite_nbr = np.isfinite(nbr_corr)
+    flag_nbr = finite_nbr & (nbr_corr < neighbor_corr_thr) & (shape_dev > 0.5 * thr_shp)
 
     detections: list[ChannelDetection] = []
     for i, name in enumerate(ch_names):
@@ -136,13 +156,17 @@ def detect_bad_channels(
             reasons.append("auto_neighbors")
         if not reasons:
             continue
+        nbr = float(nbr_corr[i])
+        # JSON cannot represent NaN; emit -1 to signal "no spatial info".
+        if not np.isfinite(nbr):
+            nbr = -1.0
         detections.append(
             ChannelDetection(
                 channel=name,
                 reasons=reasons,
                 pot_z=float(pot_z[i]),
                 shape_dev_db=float(shape_dev[i]),
-                neighbor_corr=float(nbr_corr[i]),
+                neighbor_corr=nbr,
             )
         )
 
