@@ -9,6 +9,7 @@ import { FilterPanel } from "@/components/FilterPanel";
 import { ICAPanel } from "@/components/ICAPanel";
 import { SetupBanner } from "@/components/SetupBanner";
 import { Skeleton } from "@/components/Skeleton";
+import { Select } from "@/components/ui/Select";
 import { PSDPlot } from "@/components/viz/PSDPlot";
 import { ScrollPlot } from "@/components/viz/ScrollPlot";
 import { api } from "@/lib/api/client";
@@ -174,24 +175,23 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                 >
                   →
                 </button>
-                <label className="ml-2 flex items-center gap-1">
-                  window
-                  <select
-                    value={windowLength}
-                    onChange={(e) => setWindowLength(Number.parseFloat(e.target.value))}
-                    className="rounded border border-zinc-700 bg-zinc-950 px-1 py-0.5"
-                  >
-                    <option value={5}>5s</option>
-                    <option value={10}>10s</option>
-                    <option value={20}>20s</option>
-                    <option value={60}>60s</option>
-                  </select>
-                </label>
+                <span className="ml-2 text-zinc-500">window</span>
+                <Select
+                  ariaLabel="Window length"
+                  value={windowLength}
+                  onChange={setWindowLength}
+                  options={[
+                    { value: 5, label: "5s" },
+                    { value: 10, label: "10s" },
+                    { value: 20, label: "20s" },
+                    { value: 60, label: "60s" },
+                  ]}
+                />
               </div>
             </div>
             <p className="mb-2 text-[10px] text-zinc-600">
-              click a channel name on the left to toggle bad. drag on the plot to box-select an
-              interval. mouse wheel zooms the time axis.
+              click a channel name on the left to toggle bad. hold ⌘ and scroll to zoom the time
+              axis. plain wheel scrolls the page.
             </p>
             <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
               {signal.data ? (
