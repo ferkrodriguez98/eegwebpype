@@ -1,4 +1,4 @@
-"""Bad-channel detector tests con señales sinteticas controladas."""
+"""Bad-channel detector tests on controlled synthetic signals."""
 
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownVariableType=false
 
