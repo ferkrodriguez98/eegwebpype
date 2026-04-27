@@ -60,7 +60,7 @@ export function HoverTooltip({ cursorX, cursorY, containerRef, children, offset 
     top = Math.max(0, Math.min(containerH - tipH, top));
 
     setPos({ left, top });
-  }, [cursorX, cursorY, containerRef, children]);
+  }, [cursorX, cursorY, containerRef]);
 
   return (
     <div

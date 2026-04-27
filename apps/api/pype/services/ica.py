@@ -11,6 +11,7 @@ Design:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import re
@@ -151,11 +152,9 @@ class _IterationProgressHandler(logging.Handler):
         # Reserve [0.15, 0.90] for fitting; clamp to keep the bar moving
         # without ever reaching 100% during fit (saving/done finish it).
         frac = 0.15 + min(1.0, step / self._max_iter) * 0.75
-        try:
+        # Never let progress reporting break the fit.
+        with contextlib.suppress(Exception):
             self._callback({"phase": "fitting", "fraction": frac})
-        except Exception:
-            # Never let progress reporting break the fit.
-            pass
 
 
 def fit_ica(
@@ -244,10 +243,8 @@ def fit_ica(
     # different components so old labels are meaningless.
     labels_path = _ica_labels_path(session_dir)
     if labels_path.exists():
-        try:
+        with contextlib.suppress(OSError):
             labels_path.unlink()
-        except OSError:
-            pass
 
     if progress_cb:
         progress_cb({"phase": "done", "fraction": 1.0})
@@ -288,7 +285,7 @@ def label_components_iclabel(raw: BaseRaw, ica: ICA) -> list[tuple[str, float]]:
         # `ica.ch_names` is the source of truth; if any of those are
         # missing here (e.g. someone dropped channels post-fit) ICLabel
         # would error, so we intersect.
-        ica_chs: list[str] = list(ica.ch_names)
+        ica_chs: list[str] = list(ica.ch_names or [])
         present = set(raw_for_label.ch_names)
         keep_names = [n for n in ica_chs if n in present]
         if len(keep_names) != len(ica_chs):
@@ -332,7 +329,7 @@ def label_components_iclabel(raw: BaseRaw, ica: ICA) -> list[tuple[str, float]]:
 def get_components_for_ui(
     raw: BaseRaw,
     ica: ICA,
-    # Sparkline preview: ~100 buckets × 2 values (min, max per bucket)
+    # Sparkline preview: ~100 buckets x 2 values (min, max per bucket)
     # = 200 points spanning the whole recording. Min/max bucketing
     # preserves the real envelope of the source signal at every time
     # scale (same trick used in the main scroll plot) — a contiguous
@@ -390,7 +387,7 @@ def get_components_for_ui(
         src_short = out
 
     # Try the on-disk cache first. ICLabel inference is the expensive
-    # part of building this payload (~1–2s for 20 components); skipping
+    # part of building this payload (~1-2s for 20 components); skipping
     # it on cache hit makes the components endpoint instant.
     labels: list[tuple[str, float]] | None = None
     if session_dir is not None:

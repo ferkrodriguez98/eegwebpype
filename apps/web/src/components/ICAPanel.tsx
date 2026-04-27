@@ -371,11 +371,7 @@ export function ICAPanel({ sessionId }: { sessionId: string }) {
   //   - `excludedArr`: indices marked for exclusion before applying
   //   - `fitAttempted`: whether the user has fitted at least once
   const [n, writeN] = usePersistedState<number>(sessionId, "ica-n", 20);
-  const [excludedArr, setExcludedArr] = usePersistedState<number[]>(
-    sessionId,
-    "ica-excluded",
-    [],
-  );
+  const [excludedArr, setExcludedArr] = usePersistedState<number[]>(sessionId, "ica-excluded", []);
   const excluded = useMemo(() => new Set<number>(excludedArr), [excludedArr]);
   const setExcluded = (updater: (prev: Set<number>) => Set<number>) => {
     setExcludedArr((curr) => Array.from(updater(new Set(curr))));
