@@ -6,7 +6,16 @@ import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tansta
 import { useEffect } from "react";
 
 export function useSession(id: string) {
-  return useQuery({ queryKey: ["session", id], queryFn: () => api.session(id) });
+  return useQuery({
+    queryKey: ["session", id],
+    queryFn: () => api.session(id),
+    // Refetch when the user focuses the window/tab so we never show
+    // stale state after server-side changes (or after a manual reset).
+    refetchOnWindowFocus: true,
+    // Treat data as stale immediately on remount so navigating away
+    // and back also pulls a fresh copy.
+    staleTime: 0,
+  });
 }
 
 /** Invalidate every query whose result depends on the session's current raw.

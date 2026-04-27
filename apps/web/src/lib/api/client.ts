@@ -132,31 +132,92 @@ export const api = {
     n: number,
     onProgress: (e: { phase: string; fraction?: number }) => void,
   ): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const wsUrl = `${API_URL.replace(/^http/, "ws")}/ws/sessions/${id}/ica`;
+    // Dedupe concurrent fits per-session. Without this, React StrictMode
+    // (and HMR re-runs) trigger two parallel WebSockets — the second
+    // gets rejected by the backend with 400 because a fit is in flight,
+    // surfacing a confusing error to the user.
+    const inflightKey = `__fit_ica_${id}`;
+    const g = globalThis as unknown as Record<string, Promise<void> | undefined>;
+    if (g[inflightKey]) return g[inflightKey];
+
+    const wsUrl = `${API_URL.replace(/^http/, "ws")}/ws/sessions/${id}/ica`;
+    const params = JSON.stringify({
+      n_components: n,
+      method: "extended_infomax",
+      random_state: 42,
+    });
+
+    const promise = new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(wsUrl);
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ n_components: n, method: "extended_infomax", random_state: 42 }));
+      let settled = false;
+      const settle = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        fn();
       };
-      ws.onmessage = (ev) => {
+
+      // Buffer the params and only send on `open`. Sending before open
+      // throws InvalidStateError; sending after a stale onopen event is
+      // also possible if React HMR replaces the handler.
+      ws.addEventListener("open", () => {
         try {
-          const data = JSON.parse(ev.data) as { phase?: string; error?: string; fraction?: number };
+          ws.send(params);
+        } catch (err) {
+          settle(() => reject(err instanceof Error ? err : new Error("failed to send ICA params")));
+        }
+      });
+
+      ws.addEventListener("message", (ev) => {
+        try {
+          const data = JSON.parse(ev.data) as {
+            phase?: string;
+            error?: string;
+            fraction?: number;
+          };
           if (data.error) {
-            ws.close();
-            reject(new Error(data.error));
+            settle(() => reject(new Error(data.error ?? "ica error")));
+            ws.close(1000, "client received error");
             return;
           }
           if (data.phase) onProgress({ phase: data.phase, fraction: data.fraction });
-          if (data.phase === "ready") {
-            ws.close();
-            resolve();
+          // Resolve on either of the terminal phases. The backend
+          // emits `done` from the service layer (real completion),
+          // then the WS handler emits `ready` as the final
+          // handshake message — but if either gets dropped, we
+          // still want the client to settle and React Query to
+          // mark the mutation as successful.
+          if (data.phase === "ready" || data.phase === "done") {
+            settle(() => resolve());
+            ws.close(1000, "client received terminal phase");
           }
         } catch (e) {
-          reject(e instanceof Error ? e : new Error("ws parse error"));
+          settle(() => reject(e instanceof Error ? e : new Error("ws parse error")));
         }
-      };
-      ws.onerror = () => reject(new Error("websocket error"));
+      });
+
+      ws.addEventListener("error", () => {
+        // No detail available; rely on the close event.
+      });
+
+      ws.addEventListener("close", (ev) => {
+        if (ev.code === 1000) {
+          settle(() => resolve());
+          return;
+        }
+        const reason =
+          ev.reason ||
+          (ev.code === 1006
+            ? "connection dropped before fit completed"
+            : `closed with code ${ev.code}`);
+        settle(() => reject(new Error(`ICA websocket: ${reason}`)));
+      });
     });
+
+    g[inflightKey] = promise;
+    void promise.finally(() => {
+      g[inflightKey] = undefined;
+    });
+    return promise;
   },
   externalRoots: () => get<{ external_roots: string[] }>("/api/config/external-roots"),
   setExternalRoots: (roots: string[]) =>

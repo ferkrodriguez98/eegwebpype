@@ -3,7 +3,10 @@ name = "pype"
 version = "0.1.0"
 description = "eegwebpype backend — FastAPI + MNE"
 readme = "README.md"
-requires-python = ">=3.13"
+# Pinned to 3.12: torch / onnxruntime (required by mne-icalabel for the
+# neural-network classifier) do not yet ship Python 3.13 wheels for
+# macOS x86_64. Revisit when both libs cover 3.13 reliably.
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115.6",
     "uvicorn[standard]>=0.34.0",
@@ -14,13 +17,14 @@ dependencies = [
     "pyarrow>=20.0.0",
     "python-multipart>=0.0.20",
     "websockets>=14.2",
+    "wsproto>=1.3.2",
+    "mne-icalabel>=0.8.1",
+    # ICLabel inference backend. onnxruntime is lighter than torch and
+    # has wheels for cp312 on macOS x86_64.
+    "onnxruntime>=1.19,<1.20",
 ]
 
 [project.optional-dependencies]
-iclabel = [
-    "mne-icalabel>=0.7.0",
-    "torch",
-]
 dev = [
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.2",
@@ -38,7 +42,7 @@ packages = ["pype"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
@@ -50,7 +54,7 @@ indent-style = "space"
 
 [tool.pyright]
 include = ["pype", "tests"]
-pythonVersion = "3.13"
+pythonVersion = "3.12"
 typeCheckingMode = "strict"
 reportMissingImports = "error"
 reportMissingTypeStubs = "warning"

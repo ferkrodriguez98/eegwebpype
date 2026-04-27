@@ -18,20 +18,12 @@ export function SetupBanner({ sessionId }: { sessionId: string }) {
 
   const hasMontagePending = !!detected_montage && !montage_already_applied;
   const hasResamplePending = !!suggested_sfreq && !sfreq_already_resampled;
-
-  if (!hasMontagePending && !hasResamplePending && montage_already_applied && !suggested_sfreq) {
-    return (
-      <div className="flex items-center gap-2 rounded border border-emerald-900 bg-emerald-950/30 px-3 py-1.5 text-xs text-emerald-300">
-        <CheckCircle2 size={14} />
-        <span>setup ok · montage applied</span>
-      </div>
-    );
-  }
+  const allDone = !hasMontagePending && !hasResamplePending;
 
   return (
-    <section className="rounded border border-zinc-800 bg-zinc-950 p-3">
-      <h3 className="mb-2 text-xs uppercase tracking-wider text-zinc-500">setup</h3>
-      <div className="flex flex-wrap gap-2">
+    <div className="border-b border-zinc-800 px-3 py-2">
+      <h3 className="mb-1.5 text-[10px] uppercase tracking-wider text-zinc-500">setup</h3>
+      <div className="flex flex-col gap-1">
         {hasMontagePending && (
           <button
             type="button"
@@ -42,16 +34,16 @@ export function SetupBanner({ sessionId }: { sessionId: string }) {
               })
             }
             disabled={append.isPending}
-            className="flex items-center gap-1.5 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs hover:bg-zinc-800 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] hover:bg-zinc-800 disabled:opacity-40"
           >
-            <MapPin size={14} />
-            apply montage ({detected_montage})
+            <MapPin size={11} className="shrink-0" />
+            <span className="truncate">apply {detected_montage}</span>
           </button>
         )}
         {montage_already_applied && (
-          <span className="flex items-center gap-1.5 rounded border border-zinc-800 px-3 py-1.5 text-xs text-emerald-400">
-            <MapPin size={14} />
-            montage applied
+          <span className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] text-emerald-400">
+            <MapPin size={10} className="shrink-0" />
+            <span className="truncate">montage applied</span>
           </span>
         )}
         {hasResamplePending && suggested_sfreq && (
@@ -59,19 +51,25 @@ export function SetupBanner({ sessionId }: { sessionId: string }) {
             type="button"
             onClick={() => append.mutate({ op: "resample", params: { sfreq: suggested_sfreq } })}
             disabled={append.isPending}
-            className="flex items-center gap-1.5 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs hover:bg-zinc-800 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] hover:bg-zinc-800 disabled:opacity-40"
           >
-            <Hash size={14} />
-            resample to {suggested_sfreq} Hz
+            <Hash size={11} className="shrink-0" />
+            <span className="truncate">resample {suggested_sfreq} Hz</span>
           </button>
         )}
         {sfreq_already_resampled && (
-          <span className="flex items-center gap-1.5 rounded border border-zinc-800 px-3 py-1.5 text-xs text-emerald-400">
-            <Hash size={14} />
-            resampled
+          <span className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] text-emerald-400">
+            <Hash size={10} className="shrink-0" />
+            <span className="truncate">resampled</span>
+          </span>
+        )}
+        {allDone && montage_already_applied && (
+          <span className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] text-emerald-400">
+            <CheckCircle2 size={10} className="shrink-0" />
+            <span>setup ok</span>
           </span>
         )}
       </div>
-    </section>
+    </div>
   );
 }
