@@ -91,16 +91,31 @@ def compute_psd(
 ) -> tuple[NDArray[np.float32], NDArray[np.float32], list[str]]:
     """Return (psd, freqs, channel_names) using MNE's default PSD method.
 
-    Trust `psd_obj.ch_names` to be aligned with `psd_obj.get_data()`:
-    that contract is stable across MNE >= 1.0. Earlier defensive logic
-    that filtered bads from a stale `ch_names` list double-counted them
-    and drifted by one for every bad channel marked, which surfaces as
-    `channel_names length N-1 != n_channels N` in `encode_psd_arrow`.
+    Across MNE versions and pick spellings the contract on what
+    `psd_obj.ch_names` returns is inconsistent: sometimes it tracks the
+    actual data rows, sometimes it returns the full unfiltered list
+    while the data array has bads dropped. We detect the mismatch and
+    drop the bads from `ch_names` only when needed. If the lengths still
+    don't agree afterwards, raise — the alternative is silently sending
+    misaligned arrays to the client.
     """
     psd_obj: Any = raw.compute_psd(fmin=fmin, fmax=fmax, picks=picks, verbose="ERROR")
     data = np.asarray(psd_obj.get_data(), dtype=np.float32)
     freqs = np.asarray(psd_obj.freqs, dtype=np.float32)
-    names: list[str] = list(psd_obj.ch_names)
+    all_names: list[str] = list(psd_obj.ch_names)
+    n_data = int(data.shape[0])
+    if len(all_names) == n_data:
+        names = all_names
+    else:
+        info: Any = raw.info
+        bads: set[str] = set(info["bads"] or [])
+        filtered = [n for n in all_names if n not in bads]
+        if len(filtered) != n_data:
+            raise RuntimeError(
+                f"compute_psd alignment failed: ch_names={len(all_names)}, "
+                f"after_bads_filter={len(filtered)}, data_rows={n_data}",
+            )
+        names = filtered
     return data, freqs, names
 
 
