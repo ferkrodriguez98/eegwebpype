@@ -120,5 +120,21 @@ def get_raw_for(sid: str) -> BaseRaw:
     return replay_log(state, snapshots_dir=snapshots_dir(sd))
 
 
+def reset_session(sid: str) -> SessionState:
+    """Wipe the session's event log and any cached snapshots, then
+    re-create it from scratch. The on-disk recording is never touched.
+    Returns the freshly created state (load + auto-detected montage)."""
+    sd = session_dir(sid)
+    sf = state_file(sid)
+    if sf.exists():
+        sf.unlink()
+    snap_dir = sd / "snapshots"
+    if snap_dir.exists():
+        for f in snap_dir.iterdir():
+            if f.is_file():
+                f.unlink()
+    return get_or_create_state(sid)
+
+
 def state_path(sid: str) -> Path:
     return state_file(sid)

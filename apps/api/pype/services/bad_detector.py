@@ -56,8 +56,18 @@ def _compute_psd(
     fmin: float,
     fmax: float,
 ) -> tuple[NDArray[np.float32], NDArray[np.float32], list[str]]:
+    # Pass an explicit list of channel *names* so MNE includes channels
+    # currently in `info["bads"]`. With `picks="eeg"` it would silently
+    # drop them, which makes the detector's median/MAD depend on what
+    # was marked before — the same recording would produce different
+    # detections after marking-then-unmarking. Explicit names freeze the
+    # detector population to "all EEG channels" regardless of mark state.
+    info: Any = raw.info
+    pick_types: Any = mne.pick_types
+    eeg_idx = pick_types(info, eeg=True, exclude=[])
+    eeg_names = [info["ch_names"][i] for i in eeg_idx]
     compute: Any = raw.compute_psd
-    psd_obj: Any = compute(fmin=fmin, fmax=fmax, picks="eeg", verbose="ERROR")
+    psd_obj: Any = compute(fmin=fmin, fmax=fmax, picks=eeg_names, verbose="ERROR")
     data = np.asarray(psd_obj.get_data(), dtype=np.float32)
     freqs = np.asarray(psd_obj.freqs, dtype=np.float32)
     names: list[str] = list(psd_obj.ch_names)

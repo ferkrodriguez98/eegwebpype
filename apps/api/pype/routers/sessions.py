@@ -11,7 +11,7 @@ from fastapi.responses import Response
 from pype.schemas.session import SessionState
 from pype.services.decimate import decimate_m4
 from pype.services.mne_engine import compute_psd, get_signal_window
-from pype.services.sessions import get_or_create_state, get_raw_for
+from pype.services.sessions import get_or_create_state, get_raw_for, reset_session
 from pype.services.signal_serde import encode_psd_arrow, encode_signal_arrow
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -23,6 +23,14 @@ ARROW_MEDIA_TYPE = "application/vnd.apache.arrow.stream"
 def get_session(sid: str) -> SessionState:
     try:
         return get_or_create_state(sid)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.post("/{sid}/reset", response_model=SessionState)
+def post_reset_session(sid: str) -> SessionState:
+    try:
+        return reset_session(sid)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
