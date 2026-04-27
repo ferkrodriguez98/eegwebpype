@@ -192,10 +192,15 @@ export function BadChannelsPanel({
 
   /** Re-run detection. Clear ONLY channels that came from a previous
    * auto-detect run — never the ones the user marked by hand — then
-   * re-fetch. Manual marks are sacred. */
-  const onRunAutoDetect = () => {
+   * re-fetch. Manual marks are sacred.
+   *
+   * Order matters: the unmark must land on disk before the detector
+   * runs, otherwise the detector sees the old `info["bads"]` and would
+   * compute median/MAD over a different population. We wait on the
+   * append mutation explicitly. */
+  const onRunAutoDetect = async () => {
     if (autoMarked.size > 0) {
-      append.mutate({
+      await append.mutateAsync({
         op: "unmark_bad",
         params: { channels: Array.from(autoMarked) },
       });

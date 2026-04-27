@@ -1,7 +1,8 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import type { Event } from "@eegwebpype/shared";
-import { ChevronDown, ChevronRight, ChevronUp, Undo2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, RotateCcw, Undo2 } from "lucide-react";
 import { useState } from "react";
 
 const OP_COLORS: Record<string, string> = {
@@ -150,16 +151,21 @@ export function EventTimeline({
   events,
   onUndo,
   canUndo,
+  onReset,
+  canReset,
   collapsed,
   onToggleCollapsed,
 }: {
   events: Event[];
   onUndo: () => void;
   canUndo: boolean;
+  onReset?: () => void;
+  canReset?: boolean;
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
   const groups = groupEvents(events);
   const interpolatedByEvent = interpolatedChannelsByEventId(events);
 
@@ -176,17 +182,66 @@ export function EventTimeline({
           <span>event log</span>
           <span className="text-[10px] text-zinc-600">({events.length})</span>
         </button>
-        <button
-          type="button"
-          onClick={onUndo}
-          disabled={!canUndo}
-          className="flex items-center gap-1 rounded border border-zinc-700 px-2 py-0.5 text-[10px] text-zinc-300 hover:bg-zinc-800 disabled:opacity-40"
-          title="Cmd+Z"
-        >
-          <Undo2 size={10} />
-          undo
-        </button>
+        <div className="flex items-center gap-1">
+          {onReset && (
+            <button
+              type="button"
+              onClick={() => setResetOpen(true)}
+              disabled={!canReset}
+              className="flex items-center gap-1 rounded border border-zinc-700 px-2 py-0.5 text-[10px] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-40"
+              title="discard every event and start over"
+            >
+              <RotateCcw size={10} />
+              reset
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="flex items-center gap-1 rounded border border-zinc-700 px-2 py-0.5 text-[10px] text-zinc-300 hover:bg-zinc-800 disabled:opacity-40"
+            title="Cmd+Z"
+          >
+            <Undo2 size={10} />
+            undo
+          </button>
+        </div>
       </div>
+      {onReset && (
+        <Modal
+          open={resetOpen}
+          onClose={() => setResetOpen(false)}
+          title="reset session?"
+          maxWidthClass="max-w-md"
+        >
+          <p className="text-sm text-zinc-300">
+            This deletes every event in the log and any cached snapshots. The session goes back to
+            its initial state (load + auto-detected montage).
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Your source recording on disk is never touched.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setResetOpen(false)}
+              className="rounded border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+            >
+              cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setResetOpen(false);
+                onReset();
+              }}
+              className="rounded border border-red-700 bg-red-900/40 px-3 py-1.5 text-xs text-red-100 hover:bg-red-900/70"
+            >
+              reset
+            </button>
+          </div>
+        </Modal>
+      )}
       <ol
         className={`flex flex-col gap-0.5 overflow-y-auto p-2 transition-[flex-grow,padding,opacity] duration-300 ease-in-out ${
           collapsed ? "pointer-events-none flex-grow-0 p-0 opacity-0" : "flex-grow opacity-100"

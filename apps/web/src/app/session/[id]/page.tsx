@@ -16,7 +16,13 @@ import { SlideIn } from "@/components/ui/SlideIn";
 import { PSDPlot } from "@/components/viz/PSDPlot";
 import { ScrollPlot } from "@/components/viz/ScrollPlot";
 import { api } from "@/lib/api/client";
-import { useAppendEvent, useSession, useUndo, useUndoShortcut } from "@/lib/hooks/useEventLog";
+import {
+  useAppendEvent,
+  useResetSession,
+  useSession,
+  useUndo,
+  useUndoShortcut,
+} from "@/lib/hooks/useEventLog";
 import type { SessionState } from "@eegwebpype/shared";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -61,6 +67,7 @@ export default function SessionPage({ params }: { params: ParamsP }) {
   const { id } = use(params);
   const session = useSession(id);
   const undo = useUndo(id);
+  const reset = useResetSession(id);
   useUndoShortcut(() => undo.mutate());
 
   const [tab, setTab] = useState<Tab>("overview");
@@ -299,6 +306,8 @@ export default function SessionPage({ params }: { params: ParamsP }) {
                 events={events}
                 canUndo={canUndo}
                 onUndo={() => undo.mutate()}
+                canReset={events.length > 0 && !reset.isPending}
+                onReset={() => reset.mutate()}
                 collapsed={eventLogCollapsed}
                 onToggleCollapsed={() => setEventLogCollapsed((c) => !c)}
               />

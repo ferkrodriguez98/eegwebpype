@@ -28,6 +28,10 @@ function invalidateDerivedQueries(qc: QueryClient, id: string) {
   qc.invalidateQueries({ queryKey: ["epochs", id] });
   qc.invalidateQueries({ queryKey: ["ica-components", id] });
   qc.invalidateQueries({ queryKey: ["setup", id] });
+  // Detector results live in the React Query cache as a tab-survivable
+  // store. They depend on the current raw, so any append/undo/reset must
+  // wipe them — otherwise the panel keeps showing stale detections.
+  qc.removeQueries({ queryKey: ["detect-bad", id] });
 }
 
 export function useAppendEvent(id: string) {
@@ -45,6 +49,19 @@ export function useUndo(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api.undoLast(id),
+    onSuccess: (data: SessionState) => {
+      qc.setQueryData(["session", id], data);
+      invalidateDerivedQueries(qc, id);
+    },
+  });
+}
+
+/** Wipe the session back to its initial state (load + auto-montage).
+ * Snapshots and the entire event log are deleted on the server. */
+export function useResetSession(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.resetSession(id),
     onSuccess: (data: SessionState) => {
       qc.setQueryData(["session", id], data);
       invalidateDerivedQueries(qc, id);

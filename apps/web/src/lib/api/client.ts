@@ -55,6 +55,7 @@ export const api = {
   workspace: () => get<Workspace>("/api/workspace"),
   scanWorkspace: () => post<Workspace>("/api/workspace/scan"),
   session: (id: string) => get<SessionState>(`/api/sessions/${id}`),
+  resetSession: (id: string) => post<SessionState>(`/api/sessions/${id}/reset`),
   signal: (id: string, params: { tStart: number; tEnd: number; targetPoints?: number }) => {
     const q = new URLSearchParams({
       t_start: String(params.tStart),
