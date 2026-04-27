@@ -33,11 +33,11 @@ Interactive bad-channel marking, in-browser ICA with live progress, filter previ
 
 ## First-time setup (no prior web experience needed)
 
-If you have never run a Node or Python project before, follow this section step by step. It assumes macOS or Linux with a working terminal. On Windows, use WSL2.
+If you have never run a Node or Python project before, follow this section step by step. Pick the path for your operating system.
 
 ### 1. Install the toolchain
 
-The project needs four command-line tools: `node`, `pnpm`, `python3.12`, and `uv`.
+The project needs four command-line tools: `node` (≥ 22), `pnpm` (≥ 10), `python3.12`, and `uv`.
 
 **macOS (recommended path, via [Homebrew](https://brew.sh)):**
 
@@ -64,6 +64,56 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 Make sure `python3.12` is available (`apt install python3.12` / `dnf install python3.12` / etc.).
+
+**Windows:** you have two options. **WSL2 is strongly recommended** because the backend depends on `mne-icalabel` / `onnxruntime`, which historically have had rough edges on native Windows. WSL2 gives you a real Linux environment that runs alongside Windows and uses your same files.
+
+*Option A — WSL2 (recommended):*
+
+1. Open PowerShell **as Administrator** and run:
+   ```powershell
+   wsl --install -d Ubuntu
+   ```
+   Reboot when prompted, then finish the Ubuntu first-time setup (create a username and password).
+2. From now on, open the **Ubuntu** terminal (not PowerShell) for everything below. Inside it, follow the **Linux** instructions above to install `node`, `pnpm`, `python3.12`, and `uv`.
+3. Clone the repo *inside the WSL filesystem* (e.g. `~/code/eegwebpype`), not under `/mnt/c/...` — file watching and disk I/O are dramatically faster on the Linux side.
+4. To open the project in VS Code, run `code .` from inside the Ubuntu terminal — VS Code launches with the "WSL: Ubuntu" remote indicator and edits files natively.
+
+*Option B — native Windows (PowerShell):*
+
+> ⚠️ **Heads-up: this path often does not work cleanly.** The frontend is fine, but the Python backend (especially `mne-icalabel` + `onnxruntime`) routinely runs into Windows-specific issues — DLL load errors, `PATH` weirdness, line-ending bugs in lockfiles, antivirus blocking `uv`'s downloads, etc. **If you hit any error you cannot resolve in 15 minutes, switch to Option A (WSL2).** It is not a defeat — WSL2 is the path the maintainers actually test on Windows. Option B is documented because it works for some setups, not because it is recommended.
+>
+> If only the optional ICLabel extra fails (`uv sync --extra iclabel`), you can also just skip that extra — the app still works, you just label ICA components manually instead of having them auto-classified.
+
+1. Install [Node 22 LTS](https://nodejs.org/) (use the LTS installer, accept defaults).
+2. Install [Python 3.12](https://www.python.org/downloads/windows/) — **make sure to check "Add python.exe to PATH"** on the first installer screen. This is the single most common mistake.
+3. Install [Git for Windows](https://git-scm.com/download/win) if you do not already have it. During the installer, on the "Configuring the line ending conversions" page pick **"Checkout as-is, commit Unix-style line endings"** — this avoids a class of bugs where shell scripts in the repo break with `\r` errors.
+4. Open **Windows Terminal** (preinstalled on Windows 11; on Windows 10 install it from the Microsoft Store) and start a **PowerShell** tab. Then:
+
+   ```powershell
+   npm install -g pnpm
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+
+5. **Close and reopen the terminal.** This is required so `pnpm` and `uv` show up on `PATH`. Verify with:
+
+   ```powershell
+   node --version       # v22.x
+   pnpm --version       # 10.x or higher
+   py -3.12 --version   # Python 3.12.x
+   uv --version
+   ```
+
+   If any of those four says "not recognized", that tool did not install correctly — fix it before continuing. Most often it is `pnpm` (means npm's global bin is not on `PATH`; run `npm config get prefix` and add that path's `node_modules\.bin` to your user `PATH` in System Properties → Environment Variables).
+
+**Heads-up for PowerShell users:** when this README shows `cd apps/api && something`, the `&&` chaining works in PowerShell 7+ (default on Windows 11) but not in the old Windows PowerShell 5.x (default on Windows 10). If you get a syntax error on `&&`, just run the two commands on separate lines:
+
+```powershell
+cd apps/api
+uv sync --extra dev
+cd ../..
+```
+
+Forward slashes in paths work fine in PowerShell, you do not need to flip them to backslashes.
 
 ### 2. Clone the repo
 
@@ -200,11 +250,20 @@ Add `--extra iclabel` if you want automatic ICA component classification.
 
 **Port 3000 or 8000 is already in use**
 
-Find and kill the stale process:
+Find and kill the stale process.
+
+macOS / Linux / WSL2:
 
 ```bash
 lsof -i :3000 -t | xargs kill
 lsof -i :8000 -t | xargs kill
+```
+
+Native Windows (PowerShell):
+
+```powershell
+Get-NetTCPConnection -LocalPort 3000 | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }
+Get-NetTCPConnection -LocalPort 8000 | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }
 ```
 
 **ICA fit fails with `connection dropped before fit completed`**
@@ -229,3 +288,22 @@ The backend is not running, or it crashed. Check Terminal 1 for errors and re-ru
 **`pnpm install` is very slow or fails behind a corporate proxy**
 
 Configure pnpm to use your proxy: `pnpm config set proxy http://...` and `pnpm config set https-proxy http://...`. Same for `npm config` if needed.
+
+**Windows: scripts fail with weird `\r` errors or "command not found"**
+
+Git on Windows often rewrites line endings to CRLF on checkout, which breaks shell scripts and some Node tooling. Force LF for this repo:
+
+```powershell
+git config --global core.autocrlf input
+```
+
+Then re-clone, or run `git rm --cached -r . ; git reset --hard` inside the repo (only safe if you have no uncommitted work).
+
+**Windows: `uv sync` cannot find Python 3.12**
+
+Even with Python 3.12 installed via the official installer, `uv` sometimes does not auto-detect it. Tell it explicitly:
+
+```powershell
+uv python install 3.12
+uv sync --extra dev --python 3.12
+```
