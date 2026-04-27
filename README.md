@@ -92,3 +92,29 @@ Sessions are referenced in place from one or more configured roots. The backend 
 - `exports/{id}_clean-epo.fif` and `{id}_log.json` — output of the export step.
 
 External read-only roots are configured at runtime through the workspace UI or `data/config.json`. Files inside those roots are never modified.
+
+## Privacy
+
+Nothing under `data/` is tracked by git, and EEG file extensions (`.bdf`, `.fif`, `.cnt`, `.edf`, `.set`, …) are gitignored repository-wide. Recordings, subject identifiers, and the absolute paths to your dataset never leave your machine through this repo.
+
+The frontend talks to the backend at `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`) and the backend serves `localhost:3000` only — no telemetry, no analytics, no outbound calls beyond `pip` / `pnpm` resolving dependencies at install time.
+
+## Troubleshooting
+
+**`pnpm api:dev` fails with `sh: uv: command not found`**
+
+The `api:dev` script invokes `uv` through `pnpm`'s shell, which does not always inherit `~/.local/bin` from your interactive rc. Either install `uv` to a location already on `PATH`, or run uvicorn directly:
+
+```bash
+cd apps/api && uv run uvicorn pype.main:app --reload --port 8000
+```
+
+**Backend imports fail after pulling changes that touch `pyproject.toml`**
+
+Re-sync the venv:
+
+```bash
+cd apps/api && uv sync --extra dev
+```
+
+Add `--extra iclabel` if you want automatic ICA component classification.
