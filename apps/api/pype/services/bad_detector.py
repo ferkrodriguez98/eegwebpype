@@ -56,18 +56,17 @@ def _compute_psd(
     fmin: float,
     fmax: float,
 ) -> tuple[NDArray[np.float32], NDArray[np.float32], list[str]]:
-    # Pass an explicit list of channel *names* so MNE includes channels
-    # currently in `info["bads"]`. With `picks="eeg"` it would silently
-    # drop them, which makes the detector's median/MAD depend on what
-    # was marked before — the same recording would produce different
-    # detections after marking-then-unmarking. Explicit names freeze the
-    # detector population to "all EEG channels" regardless of mark state.
-    info: Any = raw.info
-    pick_types: Any = mne.pick_types
-    eeg_idx = pick_types(info, eeg=True, exclude=[])
-    eeg_names = [info["ch_names"][i] for i in eeg_idx]
-    compute: Any = raw.compute_psd
-    psd_obj: Any = compute(fmin=fmin, fmax=fmax, picks=eeg_names, verbose="ERROR")
+    # We want the detector to see every EEG channel regardless of mark
+    # state — otherwise marking-then-unmarking the same channel changes
+    # the median/MAD population and shifts the thresholds. The default
+    # `picks="eeg"` silently drops `info["bads"]`, and neither passing
+    # explicit names nor `exclude=()` reliably overrides that across
+    # MNE versions. Easiest robust path: shallow-copy the raw and clear
+    # `info["bads"]` for the duration of the PSD call.
+    raw_copy: Any = raw.copy()
+    raw_copy.info["bads"] = []
+    compute: Any = raw_copy.compute_psd
+    psd_obj: Any = compute(fmin=fmin, fmax=fmax, picks="eeg", verbose="ERROR")
     data = np.asarray(psd_obj.get_data(), dtype=np.float32)
     freqs = np.asarray(psd_obj.freqs, dtype=np.float32)
     names: list[str] = list(psd_obj.ch_names)
