@@ -133,10 +133,10 @@ export const api = {
     n: number,
     onProgress: (e: { phase: string; fraction?: number }) => void,
   ): Promise<void> => {
-    // Dedupe concurrent fits per-session. Without this, React StrictMode
-    // (and HMR re-runs) trigger two parallel WebSockets — the second
-    // gets rejected by the backend with 400 because a fit is in flight,
-    // surfacing a confusing error to the user.
+    // Dedupe concurrent fits per-session. React StrictMode and HMR both
+    // double-invoke effects, and a short-lived first WebSocket racing
+    // with a successful second one would otherwise surface as an error
+    // even though the fit completed.
     const inflightKey = `__fit_ica_${id}`;
     const g = globalThis as unknown as Record<string, Promise<void> | undefined>;
     if (g[inflightKey]) return g[inflightKey];
@@ -148,75 +148,96 @@ export const api = {
       random_state: 42,
     });
 
-    const promise = new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket(wsUrl);
-      let settled = false;
-      const settle = (fn: () => void) => {
-        if (settled) return;
-        settled = true;
-        fn();
-      };
+    /** Open one WebSocket attempt. `gotProgress` flips true the moment
+     * the server sends any frame, so a connection that dies before the
+     * first byte (uvicorn races during `--reload`, browser DevTools
+     * pre-flighting WS, etc.) can be retried silently. */
+    const openOnce = (): Promise<{ ok: true } | { ok: false; gotProgress: boolean; err: Error }> =>
+      new Promise((resolve) => {
+        const ws = new WebSocket(wsUrl);
+        let gotProgress = false;
+        let settled = false;
+        const settle = (r: { ok: true } | { ok: false; gotProgress: boolean; err: Error }) => {
+          if (settled) return;
+          settled = true;
+          resolve(r);
+        };
 
-      // Buffer the params and only send on `open`. Sending before open
-      // throws InvalidStateError; sending after a stale onopen event is
-      // also possible if React HMR replaces the handler.
-      ws.addEventListener("open", () => {
-        try {
-          ws.send(params);
-        } catch (err) {
-          settle(() => reject(err instanceof Error ? err : new Error("failed to send ICA params")));
-        }
-      });
+        ws.addEventListener("open", () => {
+          try {
+            ws.send(params);
+          } catch (err) {
+            settle({
+              ok: false,
+              gotProgress,
+              err: err instanceof Error ? err : new Error("failed to send ICA params"),
+            });
+          }
+        });
 
-      ws.addEventListener("message", (ev) => {
-        try {
-          const data = JSON.parse(ev.data) as {
-            phase?: string;
-            error?: string;
-            fraction?: number;
-          };
-          if (data.error) {
-            settle(() => reject(new Error(data.error ?? "ica error")));
-            ws.close(1000, "client received error");
+        ws.addEventListener("message", (ev) => {
+          gotProgress = true;
+          try {
+            const data = JSON.parse(ev.data) as {
+              phase?: string;
+              error?: string;
+              fraction?: number;
+            };
+            if (data.error) {
+              settle({ ok: false, gotProgress, err: new Error(data.error ?? "ica error") });
+              ws.close(1000, "client received error");
+              return;
+            }
+            if (data.phase) onProgress({ phase: data.phase, fraction: data.fraction });
+            if (data.phase === "ready" || data.phase === "done") {
+              settle({ ok: true });
+              ws.close(1000, "client received terminal phase");
+            }
+          } catch (e) {
+            settle({
+              ok: false,
+              gotProgress,
+              err: e instanceof Error ? e : new Error("ws parse error"),
+            });
+          }
+        });
+
+        ws.addEventListener("close", (ev) => {
+          if (ev.code === 1000) {
+            settle({ ok: true });
             return;
           }
-          if (data.phase) onProgress({ phase: data.phase, fraction: data.fraction });
-          // Resolve on either of the terminal phases. The backend
-          // emits `done` from the service layer (real completion),
-          // then the WS handler emits `ready` as the final
-          // handshake message — but if either gets dropped, we
-          // still want the client to settle and React Query to
-          // mark the mutation as successful.
-          if (data.phase === "ready" || data.phase === "done") {
-            settle(() => resolve());
-            ws.close(1000, "client received terminal phase");
-          }
-        } catch (e) {
-          settle(() => reject(e instanceof Error ? e : new Error("ws parse error")));
-        }
+          const reason =
+            ev.reason ||
+            (ev.code === 1006
+              ? "connection dropped before fit completed"
+              : `closed with code ${ev.code}`);
+          settle({ ok: false, gotProgress, err: new Error(`ICA websocket: ${reason}`) });
+        });
       });
 
-      ws.addEventListener("error", () => {
-        // No detail available; rely on the close event.
-      });
-
-      ws.addEventListener("close", (ev) => {
-        if (ev.code === 1000) {
-          settle(() => resolve());
-          return;
-        }
-        const reason =
-          ev.reason ||
-          (ev.code === 1006
-            ? "connection dropped before fit completed"
-            : `closed with code ${ev.code}`);
-        settle(() => reject(new Error(`ICA websocket: ${reason}`)));
-      });
-    });
+    const promise = (async (): Promise<void> => {
+      // First attempt. If it dies before producing any progress event,
+      // retry once — that pattern matches the StrictMode double-mount
+      // race where the first socket gets rejected on handshake.
+      const first = await openOnce();
+      if (first.ok) return;
+      if (!first.gotProgress) {
+        const second = await openOnce();
+        if (second.ok) return;
+        throw second.err;
+      }
+      throw first.err;
+    })();
 
     g[inflightKey] = promise;
     void promise.finally(() => {
-      g[inflightKey] = undefined;
+      // Hold the dedup slot for one macrotask after settle so the
+      // second StrictMode mount, which fires synchronously, still sees
+      // the in-flight promise.
+      setTimeout(() => {
+        g[inflightKey] = undefined;
+      }, 0);
     });
     return promise;
   },
