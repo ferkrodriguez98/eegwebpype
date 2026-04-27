@@ -6,6 +6,26 @@ Interactive bad-channel marking, in-browser ICA with live progress, filter previ
 
 > **v1 scope**: optimized for resting-state recordings with two sessions per subject named `D1` and `D2` (test-retest). Generalization to other paradigms, longitudinal studies with N sessions, and arbitrary naming conventions is tracked in the `v2` label on GitHub Issues.
 
+## Screenshots
+
+Time-scroll of the raw signal across 32 channels at 20-second window. Eye blinks visible on the frontal-pole rows (A1/A2):
+
+![raw time scroll](docs/screenshots/raw.png)
+
+Bad-channel detector with three combined metrics. Suspicious channels rank by shape deviation, total power z-MAD, and spatial neighbor correlation. The topomap on the right tracks the metric being hovered:
+
+![bad channel detection](docs/screenshots/bad-channels.png)
+
+Filter preview: tweak bandpass and notch parameters and see the resulting PSD overlaid on the original (before/after) before committing the event:
+
+![filter preview](docs/screenshots/filter.png)
+
+ICA with optional ICLabel classification. Components are grouped by class (brain / eye / channel noise / muscle / heart / line noise / other) with per-component probability bars. Click to exclude:
+
+![ICA components grid](docs/screenshots/ica.png)
+
+> Screenshots are generated from a synthetic fixture (no real data) by `apps/web/e2e/screenshots.mjs`. To regenerate, see `docs/screenshots/README.md`.
+
 ## Features
 
 - **In-place data scan**: point at a folder of `.bdf` / `.fif` files and process them without copying or moving the originals.
