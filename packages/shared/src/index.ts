@@ -37,7 +37,7 @@ export type SessionMetadata = {
 
 type EventBase = { id: string; ts: string };
 
-export type BadReason = "auto_power" | "auto_shape" | "auto_neighbors" | "manual";
+export type BadReason = "auto_power" | "auto_shape" | "auto_neighbors" | "auto" | "manual";
 
 export type LoadEvent = EventBase & { op: "load"; params: { source_file: string } };
 export type DropChannelsEvent = EventBase & { op: "drop_channels"; params: { channels: string[] } };

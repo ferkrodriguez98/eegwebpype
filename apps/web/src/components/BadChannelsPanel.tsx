@@ -1,9 +1,15 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import { Topomap } from "@/components/viz/Topomap";
 import { api } from "@/lib/api/client";
 import { useAppendEvent } from "@/lib/hooks/useEventLog";
-import type { ChannelDetection, DetectorReason, SessionState } from "@eegwebpype/shared";
+import type {
+  ChannelDetection,
+  DetectBadResult,
+  DetectorReason,
+  SessionState,
+} from "@eegwebpype/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Info, Settings2 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -35,6 +41,34 @@ function badsFromState(state: SessionState | undefined): Set<string> {
     }
   }
   return bads;
+}
+
+/** Set of channels that were marked by a previous auto-detect run.
+ * We track the latest `mark_bad` event whose reason is one of the
+ * auto-detector classes — that's the set we want to clear before
+ * re-running detection (so the same run is idempotent), without
+ * touching channels the user marked by hand. */
+function autoMarkedFromState(state: SessionState | undefined): Set<string> {
+  if (!state) return new Set();
+  const auto = new Set<string>();
+  for (const ev of state.events) {
+    if (ev.op === "mark_bad") {
+      const reason = ev.params.reason;
+      const isAuto =
+        reason === "auto_power" ||
+        reason === "auto_shape" ||
+        reason === "auto_neighbors" ||
+        reason === "auto";
+      if (isAuto) {
+        for (const c of ev.params.channels) auto.add(c);
+      }
+    } else if (ev.op === "unmark_bad") {
+      for (const c of ev.params.channels) auto.delete(c);
+    } else if (ev.op === "interpolate_bads") {
+      auto.clear();
+    }
+  }
+  return auto;
 }
 
 function MetricBar({
@@ -95,6 +129,24 @@ export function BadChannelsPanel({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
 
+  // The detector mutation runs on demand, but writes its result into
+  // the React Query cache so the detected list survives tab switches
+  // (the panel unmounts when the user navigates elsewhere). The cache
+  // entry is keyed by sessionId only — re-running auto-detect with new
+  // thresholds overwrites it.
+  const detectQueryKey = useMemo(() => ["detect-bad", sessionId] as const, [sessionId]);
+  // We piggyback on React Query's cache as a tab-survivable store: the
+  // mutation's onSuccess writes to this key, and reading via useQuery
+  // gives us subscription semantics. enabled:false + a no-op queryFn
+  // prevents background refetches; the cache only changes when the
+  // user re-runs detection.
+  const cachedDetect = useQuery<DetectBadResult>({
+    queryKey: detectQueryKey,
+    queryFn: () => Promise.reject(new Error("detect cache only populated via mutation")),
+    enabled: false,
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: Number.POSITIVE_INFINITY,
+  });
   const detect = useMutation({
     mutationFn: () =>
       api.detectBadChannels(sessionId, {
@@ -102,9 +154,13 @@ export function BadChannelsPanel({
         pot_z_extreme: potZ,
         neighbor_corr_thr: nbrThr,
       }),
+    onSuccess: (data) => {
+      qc.setQueryData(detectQueryKey, data);
+    },
   });
 
-  const detections: ChannelDetection[] = detect.data?.detections ?? [];
+  const detectData = cachedDetect.data ?? detect.data;
+  const detections: ChannelDetection[] = detectData?.detections ?? [];
 
   const [sortBy, setSortBy] = useState<SortKey>("shape_dev_db");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -132,12 +188,17 @@ export function BadChannelsPanel({
   }, [detections]);
 
   const bads = useMemo(() => badsFromState(state), [state]);
+  const autoMarked = useMemo(() => autoMarkedFromState(state), [state]);
 
-  /** Re-run detection from scratch: clear any currently marked bads first,
-   * then re-fetch. The user explicitly asked for this so the run is idempotent. */
+  /** Re-run detection. Clear ONLY channels that came from a previous
+   * auto-detect run — never the ones the user marked by hand — then
+   * re-fetch. Manual marks are sacred. */
   const onRunAutoDetect = () => {
-    if (bads.size > 0) {
-      append.mutate({ op: "unmark_bad", params: { channels: Array.from(bads) } });
+    if (autoMarked.size > 0) {
+      append.mutate({
+        op: "unmark_bad",
+        params: { channels: Array.from(autoMarked) },
+      });
     }
     detect.mutate();
   };
@@ -146,7 +207,9 @@ export function BadChannelsPanel({
     if (detections.length === 0) return;
     const channels = detections.map((d) => d.channel);
     append.mutate(
-      { op: "mark_bad", params: { channels, reason: "manual" } },
+      // Tag these marks as auto-origin so a subsequent auto-detect run
+      // can identify them and clear them without touching manual marks.
+      { op: "mark_bad", params: { channels, reason: "auto" } },
       {
         onSuccess: () => {
           qc.invalidateQueries({ queryKey: ["session", sessionId] });
@@ -226,38 +289,42 @@ export function BadChannelsPanel({
           </div>
         </div>
 
-        {helpOpen && (
-          <div className="rounded border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-300">
-            <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-500">
-              what each metric means
-            </div>
-            <ul className="flex flex-col gap-1.5">
-              <li>
-                <span className="mr-1.5 rounded bg-amber-700 px-1 text-[9px] uppercase">power</span>
-                channel total power deviates by more than{" "}
-                <span className="font-mono text-zinc-100">pot_z_extreme</span> from the median
-                across channels (z-score using MAD).
-              </li>
-              <li>
-                <span className="mr-1.5 rounded bg-fuchsia-700 px-1 text-[9px] uppercase">
-                  shape
-                </span>
-                the shape of the channel's log-PSD deviates from the median curve. RMS difference
-                threshold is <span className="font-mono text-zinc-100">median + mad_k × MAD</span>.
-              </li>
-              <li>
-                <span className="mr-1.5 rounded bg-cyan-700 px-1 text-[9px] uppercase">nbrs</span>
-                signal correlates poorly (&lt;{" "}
-                <span className="font-mono text-zinc-100">neighbor_corr_thr</span>) with its spatial
-                nearest neighbors. Requires a montage so positions are known.
-              </li>
-            </ul>
-            <p className="mt-2 text-[10px] text-zinc-500">
-              A channel is flagged if it triggers any of the three. Re-running auto-detect clears
-              all previous manual marks first.
-            </p>
-          </div>
-        )}
+        <Modal
+          open={helpOpen}
+          onClose={() => setHelpOpen(false)}
+          title="what each metric means"
+          maxWidthClass="max-w-xl"
+        >
+          <ul className="flex flex-col gap-3">
+            <li>
+              <span className="mr-1.5 rounded bg-amber-700 px-1.5 py-0.5 text-[10px] uppercase text-amber-50">
+                power
+              </span>
+              channel total power deviates by more than{" "}
+              <span className="font-mono text-zinc-100">pot_z_extreme</span> from the median across
+              channels (z-score using MAD).
+            </li>
+            <li>
+              <span className="mr-1.5 rounded bg-fuchsia-700 px-1.5 py-0.5 text-[10px] uppercase text-fuchsia-50">
+                shape
+              </span>
+              the shape of the channel's log-PSD deviates from the median curve. RMS difference
+              threshold is <span className="font-mono text-zinc-100">median + mad_k × MAD</span>.
+            </li>
+            <li>
+              <span className="mr-1.5 rounded bg-cyan-700 px-1.5 py-0.5 text-[10px] uppercase text-cyan-50">
+                nbrs
+              </span>
+              signal correlates poorly (&lt;{" "}
+              <span className="font-mono text-zinc-100">neighbor_corr_thr</span>) with its spatial
+              nearest neighbors. Requires a montage so positions are known.
+            </li>
+          </ul>
+          <p className="mt-4 text-xs text-zinc-500">
+            A channel is flagged if it triggers any of the three. Re-running auto-detect clears all
+            previous manual marks first.
+          </p>
+        </Modal>
 
         {advancedOpen && (
           <div className="rounded border border-zinc-800 bg-zinc-950 p-3 text-xs">
@@ -313,7 +380,7 @@ export function BadChannelsPanel({
             </span>
           </div>
 
-          {detect.data ? (
+          {detectData ? (
             detections.length === 0 ? (
               <p className="px-3 py-3 text-xs text-zinc-500">
                 no suspicious channels at the current thresholds
@@ -321,23 +388,28 @@ export function BadChannelsPanel({
             ) : (
               <div className="max-h-[460px] overflow-y-auto">
                 <table className="w-full border-collapse text-xs">
-                  <thead className="sticky top-0 bg-zinc-950">
+                  {/* Sticky thead: a `<thead>` with `position: sticky` and a
+                   * background colour does NOT actually paint that
+                   * background in most browsers — `background` on a
+                   * `thead`/`tr` is dropped from the rendering tree.
+                   * Apply the background to each `<th>` instead. */}
+                  <thead className="sticky top-0 z-10">
                     <tr className="border-b border-zinc-800">
-                      <th className="px-3 py-1.5 text-left">
+                      <th className="bg-zinc-950 px-3 py-1.5 text-left">
                         <SortHeader label="channel" k="channel" />
                       </th>
-                      <th className="px-3 py-1.5 text-left">
+                      <th className="bg-zinc-950 px-3 py-1.5 text-left">
                         <span className="text-[10px] uppercase tracking-wider text-zinc-500">
                           reasons
                         </span>
                       </th>
-                      <th className="px-3 py-1.5 text-left">
+                      <th className="bg-zinc-950 px-3 py-1.5 text-left">
                         <SortHeader label="pot_z" k="pot_z" />
                       </th>
-                      <th className="px-3 py-1.5 text-left">
+                      <th className="bg-zinc-950 px-3 py-1.5 text-left">
                         <SortHeader label="shape (dB)" k="shape_dev_db" />
                       </th>
-                      <th className="px-3 py-1.5 text-left">
+                      <th className="bg-zinc-950 px-3 py-1.5 text-left">
                         <SortHeader label="nbr corr" k="neighbor_corr" />
                       </th>
                     </tr>

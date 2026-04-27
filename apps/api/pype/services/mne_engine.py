@@ -89,11 +89,27 @@ def compute_psd(
     fmax: float,
     picks: str | list[str] = "eeg",
 ) -> tuple[NDArray[np.float32], NDArray[np.float32], list[str]]:
-    """Return (psd, freqs, channel_names) using MNE's default PSD method."""
+    """Return (psd, freqs, channel_names) using MNE's default PSD method.
+
+    `compute_psd` skips channels marked as bad. We must derive `names`
+    from the data itself (via `ch_names` attribute on the PSD object,
+    which in some MNE versions still returns the full list including
+    bads) — re-aligning to the actual data row count.
+    """
     psd_obj: Any = raw.compute_psd(fmin=fmin, fmax=fmax, picks=picks, verbose="ERROR")
     data = np.asarray(psd_obj.get_data(), dtype=np.float32)
     freqs = np.asarray(psd_obj.freqs, dtype=np.float32)
-    names: list[str] = list(psd_obj.ch_names)
+    all_names: list[str] = list(psd_obj.ch_names)
+    n_data_channels = int(data.shape[0])
+    if len(all_names) == n_data_channels:
+        names = all_names
+    else:
+        # MNE returned all channel names but dropped bads in the data
+        # array. Recover the active set by filtering out channels
+        # marked as bad from the original list.
+        info: Any = raw.info
+        bads: list[str] = list(info["bads"] or [])
+        names = [n for n in all_names if n not in bads][:n_data_channels]
     return data, freqs, names
 
 

@@ -70,6 +70,7 @@ BadReason = Literal[
     "auto_power",
     "auto_shape",
     "auto_neighbors",
+    "auto",
     "manual",
 ]
 
