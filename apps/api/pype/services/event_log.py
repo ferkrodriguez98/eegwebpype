@@ -16,6 +16,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import mne  # pyright: ignore[reportMissingTypeStubs]
+import numpy as np
 from mne.io import BaseRaw  # pyright: ignore[reportMissingTypeStubs]
 
 from pype.schemas.events import (
@@ -79,8 +81,6 @@ def apply_event(raw: BaseRaw, ev: Event) -> BaseRaw:
             raw.drop_channels(existing)
         return raw
     if isinstance(ev, SetMontageEvent):
-        import mne  # pyright: ignore[reportMissingTypeStubs]
-
         montage = mne.channels.make_standard_montage(ev.params.montage)
         raw.set_montage(montage, on_missing="ignore")
         return raw
@@ -112,9 +112,52 @@ def apply_event(raw: BaseRaw, ev: Event) -> BaseRaw:
         raw.info["bads"] = new_bads  # type: ignore[index]
         return raw
     if isinstance(ev, InterpolateBadsEvent):
-        bads: list[str] = list(raw.info["bads"])  # type: ignore[index]
-        if bads:
-            raw.interpolate_bads(reset_bads=True, verbose="ERROR")
+        # Spherical-spline interpolation needs valid 3D positions for
+        # every EEG channel (good and bad), because MNE inverts the
+        # full-EEG location matrix. EXG / EOG / accessory channels
+        # tagged as "eeg" but missing from the standard montage end up
+        # with NaN locations and break `scipy.linalg.pinv`.
+        #
+        # Two-step fix: temporarily reclassify any EEG channel without
+        # a finite, non-zero location as `misc` so MNE excludes it from
+        # the interpolation; restore the original types afterwards.
+        # Bads without a position can't be interpolated regardless, so
+        # we leave them on `info["bads"]` as a heads-up for downstream
+        # consumers.
+        info: Any = raw.info
+        bads_in: list[str] = list(info["bads"])
+        if not bads_in:
+            return raw
+
+        pick_types: Any = mne.pick_types
+        eeg_picks: Any = pick_types(info, eeg=True, exclude=[])
+        no_pos: list[str] = []
+        for i in eeg_picks:
+            loc = np.asarray(info["chs"][i]["loc"][:3], dtype=float)
+            if not (np.all(np.isfinite(loc)) and not (loc == 0).all()):
+                no_pos.append(info["chs"][i]["ch_name"])
+
+        interpolatable_bads = [b for b in bads_in if b not in no_pos]
+        carried_bads = [b for b in bads_in if b in no_pos]
+
+        if interpolatable_bads:
+            if no_pos:
+                raw.set_channel_types(
+                    {ch: "misc" for ch in no_pos},
+                    on_unit_change="ignore",
+                    verbose="ERROR",
+                )
+            info["bads"] = interpolatable_bads
+            try:
+                raw.interpolate_bads(reset_bads=True, verbose="ERROR")
+            finally:
+                if no_pos:
+                    raw.set_channel_types(
+                        {ch: "eeg" for ch in no_pos},
+                        on_unit_change="ignore",
+                        verbose="ERROR",
+                    )
+        info["bads"] = carried_bads
         return raw
     if isinstance(ev, SetReferenceEvent):
         ref_type = ev.params.type
