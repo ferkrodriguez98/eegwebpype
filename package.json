@@ -10,7 +10,7 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "format": "biome format --write .",
-    "api:dev": "cd apps/api && uv run uvicorn pype.main:app --reload --port 8000",
+    "api:dev": "cd apps/api && uv run uvicorn pype.main:app --reload --port 8000 --ws wsproto",
     "api:lint": "cd apps/api && uv run ruff check .",
     "api:format": "cd apps/api && uv run ruff format --check .",
     "api:typecheck": "cd apps/api && uv run pyright",
